@@ -2034,7 +2034,7 @@ PX.bgBob = 0; PX.bgTilt = 0;
 // 底图坐标锚点（依据底图构图标定）
   PX.L.rodHandX = 492;      // 钓手持竿点（底图右手位置，PIL 实测）
   PX.L.rodHandY = 247;
-  PX.L.surfY = 285;         // 底图水面线 y
+  PX.L.surfY = 294;         // 交互水面线 y（对齐底图画的水面：1.06 缩放后画面水面 ≈296）
   PX.L.bobX = 230;          // 浮漂落点（左侧空旷水面）
   PX.ROD_LEN = 268;         // 竿长（宽幅图像模式，参考图竿占画面约 1/3 宽）
   /* 底图实体区域（PIL 实测，用于覆盖绘制） */
@@ -2912,8 +2912,10 @@ function pxDrawRod(){
   // 竿柄握把
   pxRect(handX-2, handY-1, 6, 4, '#2f2216');
   PX._handX = handX; PX._handY = handY;
-  PX._rodEx = ex; PX._rodEy = ey;
-  return {ex, ey};
+  /* 可见竿梢 = 直线端点 + 末端弯垂量。鱼线必须锚在弯垂后的梢端，
+     否则线会悬空在竿梢上方十几像素（线竿不匹配） */
+  PX._rodEx = ex; PX._rodEy = ey + sag;
+  return {ex, ey: ey + sag};
 }
 /** 鱼线（从竿梢到目标，1px 浅白，带垂度） */
 function pxDrawLine(x1,y1,x2,y2,sag){
@@ -3194,7 +3196,8 @@ function pxDrawImgRod(ang, pull, thick){
     const xx = Math.round(bx + (ex-bx)*k);
     const yy = Math.round(by + (ey-by)*k + bend);
     // 根部深褐 → 竿梢浅木色；整体比底图暗一档以保证对比
-    const col = pxMix('#2a1c10', '#b98c52', Math.min(1, k*1.4));
+    // 竿体：根部中褐 → 梢端近黑（参考图竿通体深色；梢端必须压得住亮色天空带，否则竿梢"隐形"、鱼线像悬空）
+    const col = pxMix('#5c412a', '#1a1109', k);
     const w = k > 0.82 ? Math.max(1, t-1) : t;      // 竿梢略细
     pxRect(xx, yy, w, w, col);
     pxRect(xx, yy + w, w, 1, '#160d07');            // 下缘深色描边（关键：防与底图混色）
@@ -3214,8 +3217,10 @@ function pxDrawImgRod(ang, pull, thick){
   pxRect(handX-4, handY+2, 3, 3, '#c49064');            // 手下缘阴影
   pxRect(handX-7, handY-1, 4, 6, '#b8442a');            // 袖口（橙红救生衣）
   pxRect(handX-7, handY-1, 4, 2, '#d4573a');            // 袖口受光
-  PX._rodEx = ex; PX._rodEy = ey;
-  return {ex, ey};
+  /* 可见竿梢 = 直线端点 + 末端弯垂量。鱼线必须锚在弯垂后的梢端，
+     否则线会悬空在竿梢上方十几像素（线竿不匹配） */
+  PX._rodEx = ex; PX._rodEy = ey + sag;
+  return {ex, ey: ey + sag};
 }
 
 /** 钓线（图像模式）：二次贝塞尔，可给中段垂度，1~2px 浅色 */
@@ -3728,7 +3733,7 @@ function pxDrawSceneImg(){
       const prog = kk < per/2 ? kk/(per/2) : 1-(kk-per/2)/(per/2);
       // 鱼影只在左侧空旷水域巡游（船体区 x>=360 不进，避免穿过人物）
       const fx = 70 + prog*250;
-      const fy = Math.min(310, sy - 12 + i*10 + Math.sin(PX.frame*0.04 + i)*3);
+      const fy = Math.min(304, sy - 16 + i*9 + Math.sin(PX.frame*0.04 + i)*3);
       pxDrawImgFish(fx, fy, '#5b7d92', kk<per/2 ? 0 : 180, 0.8, {alpha:0.30});
     }
     pxDrawImgBobber(bobX + drift, bY);
@@ -3773,7 +3778,7 @@ function pxDrawSceneImg(){
     // 水花：咬钩越猛越大
     if(T % 4 === 0) pxEmitSplash(bobX + sway, sy + 2, small?5:(mid?12:20));
     // 鱼咬在浮漂正下方：头朝上对准线端，持续挣扎摆动（线-漂-鱼三点连续）
-    const fishY = Math.min(304, bY + 16 + sink*0.4);
+    const fishY = Math.min(300, bY + 14 + sink*0.4);
     const fishA = -84 + Math.sin(T*0.85)*16;                 // 头朝上左右甩头
     const fishScale = small ? 0.75 : (mid ? 1.0 : 1.45);
     pxDrawImgFish(bobX + sway*0.85, fishY, col, fishA, fishScale, {alpha:0.82, look: pxFishLook(s.fishName||'', s.fishRarity)});
@@ -3781,7 +3786,7 @@ function pxDrawSceneImg(){
     pxDrawImgLine(bobX + sway, bY + 4, bobX + sway*0.85, fishY - (small?18:26), 0, 1);
     // 巨物：水下更大剪影 + 泄力器光点
     if(!small && !mid){
-      pxDrawImgFish(bobX + sway - 14, Math.min(308, fishY + 26), col, fishA + 8, 1.6, {alpha:0.42});
+      pxDrawImgFish(bobX + sway - 14, Math.min(304, fishY + 24), col, fishA + 8, 1.6, {alpha:0.42});
       for(let i=0;i<6;i++){
         const ph = (PX.frame + i*3) % 14;
         if(ph < 7) pxPix(PX.L.rodHandX - 8 - i*5, PX.L.rodHandY + 2 + (i%2), '#ffd27a');
@@ -3799,7 +3804,7 @@ function pxDrawSceneImg(){
     const col = pxRarityColor(s.fishRarity);
     /* 鱼始终咬在「线端」：线的末端=鱼嘴，全程连续不跳变。
        轨迹：从浮漂处沿水面拖行 → 平滑抬头 → 被提到半空 */
-    const mouthX = bobX + ease*(330 - bobX);                    // 拖向船头前水域
+    const mouthX = bobX + ease*(366 - bobX);                    // 拖向船头前水域（参考图：在船边出水）
     const lift  = Math.max(0, ease - 0.45) / 0.55;              // 后 55% 才离水
     const mouthY = sy - 2 - lift*lift*54;                       // 二次缓动升空
     const fishLen = big ? 110*1.5 : 64*1.25;
@@ -3834,13 +3839,13 @@ function pxDrawSceneImg(){
       if(T < snapT){
         const jit = Math.sin(T*1.1)*15;
         pxDrawImgLine(rod.ex, rod.ey, bx + jit, sy + 22, 4, 2);
-        pxDrawImgFish(bx - 34, Math.min(308, sy + 16 + T*0.8), col, 200, 1.2, {alpha:0.8, look});
+        pxDrawImgFish(bx - 34, Math.min(304, sy + 16 + T*0.8), col, 200, 1.2, {alpha:0.8, look});
       } else {
         // 竿端垂下的断线
         pxDrawImgLine(rod.ex, rod.ey, rod.ex + 40, rod.ey + 46, 12, 1);
         // 逃逸的鱼（向右下潜）
         const k2 = Math.min(1, (T-snapT)/30);
-        pxDrawImgFish(bx + k2*130, Math.min(308, sy + 26 + k2*30), col, 168 + k2*14, 1.3, {alpha:0.85, look});
+        pxDrawImgFish(bx + k2*130, Math.min(304, sy + 26 + k2*30), col, 168 + k2*14, 1.3, {alpha:0.85, look});
         if(T===snapT){ pxEmitSplash(bx, sy+2, 10); pxShake(); }
       }
     } else {
@@ -3872,7 +3877,7 @@ function pxDrawSceneImg(){
         pxRect(Math.round(hx)+3, Math.round(hy)+4, 2, 5, '#dbe6ee');
         pxPix(Math.round(hx), Math.round(hy)-1, '#ffffff');
         // 鱼下潜逃逸
-        if(backT < 40) pxDrawImgFish(bobX - 108 - backT*1.4, Math.min(308, sy + 16 + backT*2.2), col, 172, 1.2, {alpha:0.8, look});
+        if(backT < 40) pxDrawImgFish(bobX - 108 - backT*1.4, Math.min(304, sy + 16 + backT*2.2), col, 172, 1.2, {alpha:0.8, look});
       }
       // 浮漂弹回原位的余波
       const bb = Math.max(0, 1 - T/26);
