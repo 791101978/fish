@@ -746,7 +746,7 @@ const FISH_PREFIX = {
   mystic:['神隐','虚空','归墟','鯤','烛龙','混沌'],
 };
 const FISH_BODY = {
-  common:['鲫鱼','白条','泥鳅','麦穗','小虾虎','石斑'],
+  common:['鲫鱼','白条','泥鳅','麦穗','小虾虎','石斑','河虾','青虾'],
   good:['鲤鱼','草鱼','鳊鱼','黄颡鱼','鲮鱼','鳜鱼'],
   rare:['鲟鱼','军鱼','翘嘴','胭脂鱼','大口鲶','鳗鲡'],
   epic:['哲罗鲑','石斑巨物','江豚','巨型鲶','狼鱼','白鲟幼体'],
@@ -2107,10 +2107,13 @@ function pxFishLook(name, rarity){
   const seed = pxHashStr(key);
   const order = RARITY[rarity] ? RARITY[rarity].order : 0;
 
-  /* 体形档位：按本体关键词分五类（长条/短圆/修长/粗壮/标准） */
+  /* 体形档位：按本体关键词分档（虾/小杂鱼/长条/短圆/修长/粗壮/标准） */
   let shape = 'std';
-  if(/鳗|鳅|鳝|鲥|鳗鲡/.test(name)) shape = 'eel';
-  else if(/鲀|虾虎|麦穗|鲳|鳌/.test(name)) shape = 'chub';
+  if(/虾虎/.test(name)) shape = 'minnow';
+  else if(/虾|蟹/.test(name)) shape = 'shrimp';
+  else if(/鳗|鳅|鳝|鲥|鱿|章/.test(name)) shape = 'eel';
+  else if(/白条|麦穗|银鱼|鲹|鲦/.test(name)) shape = 'minnow';
+  else if(/鲀|鲳|鳌/.test(name)) shape = 'chub';
   else if(/鲟|鳢|鳐|鲶|鲇|鳊|翘嘴|黄颡|军鱼/.test(name)) shape = 'long';
   else if(/鲲|鯤|鲸|豚|龙|影|灵|蜃|哲罗/.test(name)) shape = 'whale';
 
@@ -2123,7 +2126,8 @@ function pxFishLook(name, rarity){
   else if(/鲶|鲇|鳅|鳝|鳗|黄颡/.test(name)) family = 'bottom';
   else if(/鲈|鳜|鲷|石斑|罗非|鲹|鲭|鲣/.test(name)) family = 'perch';
   else if(/鲟|鳢|翘嘴|军鱼|鳡/.test(name)) family = 'pike';
-  else if(/鲀|虾虎|麦穗|鲳|鱿|章/.test(name)) family = 'small';
+  else if(/虾虎|鲀|麦穗|白条|鲳|鱿|章|银鱼/.test(name)) family = 'small';
+  else if(/虾/.test(name)) family = 'shrimp';
 
   const FAM_COL = {
     carp:    '#c4b896',   // 鲤鲫：暖黄橄榄
@@ -2131,11 +2135,21 @@ function pxFishLook(name, rarity){
     perch:   '#8a9ca8',   // 鲈鲷：蓝灰银
     pike:    '#7a8a7a',   // 鲟鳢：灰绿
     small:   '#8a8a7a',   // 小杂鱼：暗橄榄
+    shrimp:  '#c2a184',   // 虾蟹：半透明琥珀
     salmon:  '#c4a6a0',   // 鳟鲑：粉银
     deep:    '#5a6a7a',   // 鲸鲨：钢蓝
     fantasy: order >= 5 ? '#352538' : '#4a3a5a'   // 龙鲲：深紫近黑
   };
   let base = FAM_COL[family] || FAM_COL.carp;
+
+  /* 体型大小档：决定同场景下的实际尺寸（虾 0.5 ≪ 小杂鱼 0.66 ≪ 鲤草 1.0 ≪ 鲶鲟 1.16 ≪ 鲲龙 1.32） */
+  let bodySize = 1;
+  if(shape === 'shrimp') bodySize = 0.6;
+  else if(/白条|麦穗|银鱼|虾虎|鲹|鲦|鱿|章|鲳/.test(name)) bodySize = 0.66;
+  else if(/鲫|鳊|鲮|黄颡|鲈|鳜|鲷|罗非|鲐|泥鳅|鳅/.test(name)) bodySize = 0.84;
+  else if(/鲤|草鱼|鲢|鳙|军鱼|翘嘴|胭脂|鳗|鳝|石斑/.test(name)) bodySize = 1.0;
+  else if(/鲶|鲇|鲟|鳢|鳐|哲罗|狼鱼|江豚/.test(name)) bodySize = 1.16;
+  else if(/鲲|鯤|鲸|豚|鲨|龙|影|灵|蜃|镇海|深渊|太古|烛龙|混沌|归墟|虚空|神隐/.test(name)) bodySize = 1.32;
 
   /* 品质只做轻微明暗/饱和度修饰，不改变自然色相 */
   let satBoost = 1, lightBoost = 1;
@@ -2154,7 +2168,7 @@ function pxFishLook(name, rarity){
   const patCol = pxHueRot(base, hue + (seed % 2 ? 10 : -10), sMul * 0.82, lMul * 0.88);
 
   const look = {
-    mid, patType, patCol, shape, seed, family, order,
+    mid, patType, patCol, shape, seed, family, order, bodySize,
     whisker: /鲶|鲇|鲤|龙|鲲|鯤/.test(name),
   };
   _fishLookCache[key] = look;
@@ -3243,23 +3257,23 @@ function pxDrawImgBobber(x, y){
   // 水下倒影（模糊竖条）
   if(y > sy - 3){
     c.globalAlpha = 0.24;
-    for(let i=0;i<9;i++){
-      pxRect(x-3 + Math.round(Math.sin(PX.frame*0.18+i)*2), y + 8 + i, Math.max(1, 7-i*0.7)|0, 1, '#6d8496');
+    for(let i=0;i<7;i++){
+      pxRect(x-2 + Math.round(Math.sin(PX.frame*0.18+i)*1.6), y + 6 + i, Math.max(1, 5-i*0.6)|0, 1, '#6d8496');
     }
     c.globalAlpha = 1;
   }
-  // 球体（放大到 12px 直径，参考图浮球在画面中清晰可辨）
-  pxRect(x-6, y-7, 12, 15, '#d8862a');
-  pxRect(x-7, y-4, 14, 9, '#f0a63a');
-  pxRect(x-6, y-8, 12, 3, '#f6bc5e');
-  pxRect(x-6, y+7, 12, 3, '#a85f16');
+  // 球体：8px 直径的小浮球（比原先 12px 收小，画面上不再抢镜）
+  pxRect(x-4, y-5, 8, 10, '#d8862a');
+  pxRect(x-5, y-3, 10, 6, '#f0a63a');
+  pxRect(x-4, y-6, 8, 2, '#f6bc5e');
+  pxRect(x-4, y+5, 8, 2, '#a85f16');
   // 顶部黑点
-  pxRect(x-3, y-11, 6, 3, '#232323');
+  pxRect(x-2, y-8, 4, 2, '#232323');
   // 高光
-  pxRect(x-3, y-6, 3, 4, '#ffe4b0');
-  pxPix(x-2, y-5, '#fff2d4');
+  pxRect(x-2, y-4, 2, 3, '#ffe4b0');
+  pxPix(x-1, y-3, '#fff2d4');
   // 吃水线
-  pxRect(x-8, sy, 16, 2, 'rgba(255,255,255,0.28)');
+  pxRect(x-5, sy, 10, 2, 'rgba(255,255,255,0.28)');
 }
 
 /** 同心涟漪环（参考图标志性的大圈水纹） */
@@ -3313,22 +3327,32 @@ function pxFishSprite(look, baseCol){
 
   const rng = _pxRng32(look ? (look.seed || 7) : pxHashStr(baseCol));
 
-  /* shape → 体高 / 体长系数（鳗细长 / 鲀短圆 / 鲟鳢修长 / 鲸鲲粗壮） */
+  /* shape → 体高 / 体长系数（小杂鱼细长 / 鳗细长 / 鲀短圆 / 鲟鳢修长 / 鲸鲲粗壮） */
   let hMul = 1, lMul = 1;
   if(look){
-    if(look.shape === 'eel'){ lMul = 1.28; hMul = 0.46; }
+    if(look.shape === 'eel'){ lMul = 1.26; hMul = 0.46; }
+    else if(look.shape === 'minnow'){ lMul = 1.10; hMul = 0.60; }
     else if(look.shape === 'chub'){ lMul = 0.84; hMul = 1.32; }
-    else if(look.shape === 'long'){ lMul = 1.16; hMul = 0.72; }
-    else if(look.shape === 'whale'){ lMul = 1.04; hMul = 1.46; }
+    else if(look.shape === 'long'){ lMul = 1.14; hMul = 0.72; }
+    else if(look.shape === 'whale'){ lMul = 1.06; hMul = 1.18; }
   }
 
-  const W = 92, H = 40, cy = 20;
+  const W = 116, H = 56, cy = 28;      // 画布加大：长身/高背鱼不再被裁掉
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
 
-  const noseX = 7, BL = Math.round(62 * lMul), tailX = noseX + BL;
+  /* 虾类单独绘制：弓形分节躯体 + 额剑 + 长触须 + 步足 + 尾扇（与鱼的轮廓完全不同） */
+  if(look && look.shape === 'shrimp'){
+    pxDrawShrimpSprite(g, W, H, { mid, dark, light, outline, edge: finEdge, rng });
+    cv._cx = 44; cv._cy = 28;
+    _fishSpriteCache[key] = cv;
+    return cv;
+  }
+
+  const noseX = 6, BL = Math.round(62 * lMul), tailX = noseX + BL;
   const H2 = 11.6 * hMul;
+  cv._cx = noseX + BL * 0.52 + 3; cv._cy = cy;   // 视觉中心（贴图时用于对齐锚点）
 
   /* 轮廓半高：t 0=吻部 → 1=尾柄（收尖的头部 → 最高点 → 收窄尾柄） */
   function prof(t){
@@ -3479,6 +3503,73 @@ function pxFishSprite(look, baseCol){
   return cv;
 }
 
+/* ============ 虾类精灵：与鱼类完全不同的画法 ============ */
+/** 弓形分节躯体（半透明壳色）+ 额剑 + 长触须 + 步足 + 尾扇 */
+function pxDrawShrimpSprite(g, W, H, o){
+  const px = (x, y, col, a) => {
+    x = Math.round(x); y = Math.round(y);
+    if(x < 0 || y < 0 || x >= W || y >= H) return;
+    g.globalAlpha = a == null ? 1 : a;
+    g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    g.globalAlpha = 1;
+  };
+  const cx = 58, cy = 27, rx = 20, ry = 11;
+  const A0 = 176, A1 = -34, N = 78;
+  /* 身体中轴：头部（左）→ 背部拱起 → 尾部（右下） */
+  const pt = t => {
+    const a = (A0 + (A1 - A0) * t) * Math.PI / 180;
+    return { x: cx + Math.cos(a) * rx, y: cy - Math.sin(a) * ry * (0.42 + 0.58 * t) };
+  };
+  /* 1. 躯干：逐点铺厚度（背亮腹暗 + 描边） */
+  for(let i = 0; i <= N; i++){
+    const t = i / N, p = pt(t);
+    const th = t < 0.14 ? 1.3 + t * 8.6 : Math.max(1.1, 2.5 - (t - 0.14) * 1.7);
+    const seg = (t * 10) % 1;
+    for(let d = -Math.ceil(th); d <= Math.ceil(th); d++){
+      const k = Math.abs(d) / Math.max(1, th);
+      let colr = k > 0.80 ? o.outline : (d < -th * 0.22 ? o.light : (d > th * 0.34 ? o.dark : o.mid));
+      let al = k > 0.80 ? 0.95 : 0.93;
+      if(t > 0.22 && t < 0.96 && seg < 0.08){ colr = o.outline; al = 0.40; }   // 腹节分割线
+      px(p.x, p.y + d, colr, al);
+    }
+  }
+  /* 2. 头胸部略加深 + 额剑（向前上方的尖刺） */
+  const h0 = pt(0.015), h1 = pt(0.12);
+  for(let i = -2; i <= 3; i++) px(h1.x - 1, h1.y + i, o.mid, 0.85);
+  for(let i = 0; i < 8; i++) px(h0.x - i * 1.15, h0.y - i * 0.34, o.edge, 0.95);
+  /* 3. 复眼 */
+  px(h0.x + 1, h0.y - 2, '#0b1014');
+  px(h0.x + 2, h0.y - 2, '#eef4f8', 0.85);
+  /* 4. 长触须（两根，向前甩出并微微上/下弯） */
+  for(let i = 0; i < 30; i++){
+    const k = i / 29, xx = h0.x - k * 30;
+    px(xx, h0.y - 2 - Math.sin(k * 1.5) * 7 - k * 5, o.edge, 0.70 - k * 0.24);
+    px(xx, h0.y + 2 + Math.sin(k * 1.3) * 5 + k * 3, o.edge, 0.58 - k * 0.20);
+  }
+  /* 5. 步足：腹下 5 条短足 */
+  for(let i = 0; i < 5; i++){
+    const p = pt(0.20 + i * 0.115);
+    const len = 3 + (i % 2);
+    for(let j = 0; j < len; j++) px(p.x + i * 0.3, p.y + 3 + j, o.edge, 0.85 - j * 0.12);
+  }
+  /* 6. 尾扇：三片 */
+  const tp = pt(1);
+  for(let i = -1; i <= 1; i++){
+    for(let j = 0; j < 5; j++) px(tp.x + j * 1.2, tp.y + i * 2.3 + i * j * 0.32, i === 0 ? o.mid : o.light, 0.95 - j * 0.08);
+    px(tp.x + 5, tp.y + i * 4.2, o.outline, 0.9);
+  }
+}
+
+/* ============ 同一条鱼全程统一尺寸规格 ============ */
+/** 咬钩 / 上鱼 / 入护 三个阶段取同一个 len → 不会出现“钓上来瞬间变大”。
+ *  size: small|mid|big（博弈档） · look.bodySize：鱼种真实体型档（虾 0.5 → 鲲龙 1.32） */
+function fishDrawSpec(size, look){
+  const bs = (look && look.bodySize) ? look.bodySize : 1;
+  const base = size === 'big' ? 124 : (size === 'mid' ? 58 : 34);
+  const len = base * bs;
+  return { len, big: size === 'big', s: len / 62, nose: (len / 62) * 36 };
+}
+
 /* ============ 贴图渲染：把预渲染精灵按朝向/缩放贴到场景（对外接口不变） ============ */
 function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
   opt = opt || {};
@@ -3486,9 +3577,9 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
   const spr = pxFishSprite(look, col);
   const c = PX.ctx;
   const SW = spr.width, SH = spr.height;
-  /* 目标身长与旧版一致：普通 54 / 巨物 96（62 = 精灵身长基准） */
-  const targetL = (opt.big ? 96 : 54) * (scale || 1);
-  const s = Math.max(0.35, targetL / 62);
+  /* 目标身长：优先用 opt.len（同一条鱼全程一致），否则沿用旧的比例 */
+  const targetL = (opt.len != null) ? opt.len : (opt.big ? 96 : 54) * (scale || 1);
+  const s = Math.max(0.20, targetL / 62);
   c.save();
   c.translate(Math.round(cx), Math.round(cy));
   if(opt.alpha != null) c.globalAlpha = opt.alpha;
@@ -3500,8 +3591,8 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
     c.rotate(dirDeg * Math.PI / 180);
     c.scale(s, s);
   }
-  /* 精灵：吻部 x≈7、尾尖 x≈85 → 视觉中心 ≈46；垂直中心 20 */
-  c.drawImage(spr, -46, -20);
+  /* 贴图：以精灵自身记录的视觉中心对齐锚点（不同体形的鱼都不会偏） */
+  c.drawImage(spr, -(spr._cx != null ? spr._cx : 46), -(spr._cy != null ? spr._cy : 20));
   c.restore();
   if(opt.alpha != null) c.globalAlpha = 1;
 
@@ -3726,7 +3817,8 @@ function pxDrawSceneImg(){
     const bY = vfloat + drift*0.25;
     // 线：竿梢 → 浮漂，垂度随竿身起伏变化（线在水面轻轻拖拽）
     pxDrawImgLine(rod.ex, rod.ey, bobX + drift*0.6, bY - 2, 3 + Math.sin(PX.frame*0.07)*3, 1);
-    // 浮漂下方水里的鱼影巡游
+    // 浮漂下方水里的鱼影巡游（朝向跟随游动方向；不同鱼种各有体形与大小）
+    const swim = ['白条','鲫鱼','鲤鱼'];
     for(let i=0;i<3;i++){
       const per = 300 + i*90;
       const kk = (PX.frame + i*110) % per;
@@ -3734,7 +3826,9 @@ function pxDrawSceneImg(){
       // 鱼影只在左侧空旷水域巡游（船体区 x>=360 不进，避免穿过人物）
       const fx = 70 + prog*250;
       const fy = Math.min(304, sy - 16 + i*9 + Math.sin(PX.frame*0.04 + i)*3);
-      pxDrawImgFish(fx, fy, '#5b7d92', kk<per/2 ? 0 : 180, 0.8, {alpha:0.30});
+      const look = pxFishLook(swim[i], i === 2 ? 'good' : 'common');
+      const spec = fishDrawSpec(i === 2 ? 'mid' : 'small', look);
+      pxDrawImgFish(fx, fy, '#5b7d92', kk < per/2 ? 180 : 0, 0, {alpha:0.30, look, len:spec.len});
     }
     pxDrawImgBobber(bobX + drift, bY);
     // 同心涟漪环（持续扩散，跟随浮漂位置；速度调快保证任何时刻都在变）
@@ -3777,16 +3871,17 @@ function pxDrawSceneImg(){
     pxDrawImgRings(bobX + sway, sy + 3, 165, 4, 0.42, 2.1);
     // 水花：咬钩越猛越大
     if(T % 4 === 0) pxEmitSplash(bobX + sway, sy + 2, small?5:(mid?12:20));
-    // 鱼咬在浮漂正下方：头朝上对准线端，持续挣扎摆动（线-漂-鱼三点连续）
+    // 鱼咬在浮漂正下方：嘴朝上对准线端（+90°= 正上方），持续挣扎摆动
     const fishY = Math.min(300, bY + 14 + sink*0.4);
-    const fishA = -84 + Math.sin(T*0.85)*16;                 // 头朝上左右甩头
-    const fishScale = small ? 0.75 : (mid ? 1.0 : 1.45);
-    pxDrawImgFish(bobX + sway*0.85, fishY, col, fishA, fishScale, {alpha:0.82, look: pxFishLook(s.fishName||'', s.fishRarity)});
-    // 鱼嘴到浮漂的短线（咬钩连接段）
-    pxDrawImgLine(bobX + sway, bY + 4, bobX + sway*0.85, fishY - (small?18:26), 0, 1);
+    const fishA = 86 + Math.sin(T*0.85)*14;                  // 头（嘴）朝上左右甩头
+    const biteLook = pxFishLook(s.fishName||'', s.fishRarity);
+    const biteSpec = fishDrawSpec(s.fishSize, biteLook);
+    pxDrawImgFish(bobX + sway*0.85, fishY, col, fishA, 0, {alpha:0.82, look: biteLook, len: biteSpec.len, big: biteSpec.big});
+    // 鱼嘴到浮漂的短线（咬钩连接段）：锚在鱼吻端（竖直上方）
+    pxDrawImgLine(bobX + sway, bY + 4, bobX + sway*0.85, fishY - biteSpec.nose*0.92, 0, 1);
     // 巨物：水下更大剪影 + 泄力器光点
     if(!small && !mid){
-      pxDrawImgFish(bobX + sway - 14, Math.min(304, fishY + 24), col, fishA + 8, 1.6, {alpha:0.42});
+      pxDrawImgFish(bobX + sway - 16, Math.min(304, fishY + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
       for(let i=0;i<6;i++){
         const ph = (PX.frame + i*3) % 14;
         if(ph < 7) pxPix(PX.L.rodHandX - 8 - i*5, PX.L.rodHandY + 2 + (i%2), '#ffd27a');
@@ -3803,17 +3898,21 @@ function pxDrawSceneImg(){
     const ease = k*k*(3-2*k);                    // smoothstep 缓动：无匀速生硬感
     const col = pxRarityColor(s.fishRarity);
     /* 鱼始终咬在「线端」：线的末端=鱼嘴，全程连续不跳变。
+       尺寸与咬钩阶段用同一 spec → 不会出现“钓上来一瞬间变大”。
        轨迹：从浮漂处沿水面拖行 → 平滑抬头 → 被提到半空 */
     const mouthX = bobX + ease*(366 - bobX);                    // 拖向船头前水域（参考图：在船边出水）
     const lift  = Math.max(0, ease - 0.45) / 0.55;              // 后 55% 才离水
-    const mouthY = sy - 2 - lift*lift*54;                       // 二次缓动升空
-    const fishLen = big ? 110*1.5 : 64*1.25;
-    // 挂着时略微倾斜（-72°），让鱼身轮廓、尾鳍、背鳍都能看清，不再是竖直色块
-    const ang = -72 + lift*18 + Math.sin(T*0.75)*10;            // 头朝上挣扎摆动
-    // 线：竿梢 → 鱼嘴（直接锚定，无垂度抖动跳变）
-    pxDrawImgLine(rod.ex, rod.ey, mouthX, mouthY - fishLen*0.40, 2, big?2:1);
     const reelLook = pxFishLook(s.fishName||'', s.fishRarity);
-    pxDrawImgFish(mouthX, mouthY, col, ang, big?1.5:1.25, {big:big, look:reelLook});
+    const spec = fishDrawSpec(s.fishSize, reelLook);
+    // 鱼嘴朝上（+90°= 正上方）：拖行时近水平，起水后逐渐竖立
+    const ang = 14 + lift*76 + Math.sin(T*0.75)*9;
+    // 纵向位置：正常缓动上提；大个体按倾角抬高，避免鱼尾被画面裁掉
+    const need = Math.abs(Math.sin(ang*Math.PI/180)) * spec.len * 0.58;
+    const mouthY = Math.min(sy - 2 - lift*lift*54, PX.H - 4 - need);
+    // 线：竿梢 → 鱼嘴（锚在鱼吻端，随倾角一起算）
+    const na = ang * Math.PI / 180;
+    pxDrawImgLine(rod.ex, rod.ey, mouthX - spec.nose*Math.cos(na)*0.92, mouthY - spec.nose*Math.sin(na)*0.92, 2, big?2:1);
+    pxDrawImgFish(mouthX, mouthY, col, ang, 0, {big:spec.big, look:reelLook, len:spec.len});
     // 水面拖行痕迹（仅入水阶段）
     if(lift < 0.25){
       for(let i=0;i<12;i++){
@@ -3833,19 +3932,20 @@ function pxDrawSceneImg(){
   else if(s.state==='lost'){
     const T = s.t, col = pxRarityColor(s.fishRarity);
     const look = pxFishLook(s.fishName||'', s.fishRarity);   // 跑掉的就是咬钩那条，长得一样
+    const spec = fishDrawSpec(s.fishSize, look);
     if(s.result === 'break'){
       // 切线：抖动的线 → 断点 → 断线垂落 + 鱼影逃逸
       const snapT = 12, bx = bobX + 34;
       if(T < snapT){
         const jit = Math.sin(T*1.1)*15;
         pxDrawImgLine(rod.ex, rod.ey, bx + jit, sy + 22, 4, 2);
-        pxDrawImgFish(bx - 34, Math.min(304, sy + 16 + T*0.8), col, 200, 1.2, {alpha:0.8, look});
+        pxDrawImgFish(bx - 34, Math.min(304, sy + 16 + T*0.8), col, -78, 0, {alpha:0.8, look, len:spec.len});
       } else {
         // 竿端垂下的断线
         pxDrawImgLine(rod.ex, rod.ey, rod.ex + 40, rod.ey + 46, 12, 1);
-        // 逃逸的鱼（向右下潜）
+        // 逃逸的鱼（向右下潜，头朝下游动方向）
         const k2 = Math.min(1, (T-snapT)/30);
-        pxDrawImgFish(bx + k2*130, Math.min(304, sy + 26 + k2*30), col, 168 + k2*14, 1.3, {alpha:0.85, look});
+        pxDrawImgFish(bx + k2*130, Math.min(304, sy + 26 + k2*30), col, 258 + k2*8, 0, {alpha:0.85, look, len:spec.len});
         if(T===snapT){ pxEmitSplash(bx, sy+2, 10); pxShake(); }
       }
     } else {
@@ -3856,7 +3956,10 @@ function pxDrawSceneImg(){
         const jx = bobX - 10 + k*118;
         const jy = sy - 6 - Math.sin(k*Math.PI)*86;   // 抛物线跃出
         pxDrawImgLine(rod.ex, rod.ey, jx, jy + 10, 6, 1);
-        pxDrawImgFish(jx, jy, col, -70 + k*150, 1.15, {look});  // 空中翻转甩钩
+        // 96°→264°：头朝上出水 → 空中前翻 → 头朝下入水（全程不翻背）
+        const jAng = 96 + k*168;
+        const jNeed = Math.abs(Math.sin(jAng*Math.PI/180)) * spec.len * 0.58;
+        pxDrawImgFish(jx, Math.min(jy, PX.H - 4 - jNeed), col, jAng, 0, {look, len:spec.len*0.96});
         PX.ctx.globalAlpha = 0.5;
         for(let i=0;i<12;i++){
           const sr = i*7 + (T*3 % 7);
@@ -3876,8 +3979,8 @@ function pxDrawSceneImg(){
         pxRect(Math.round(hx)-2, Math.round(hy)+7, 6, 2, '#dbe6ee');
         pxRect(Math.round(hx)+3, Math.round(hy)+4, 2, 5, '#dbe6ee');
         pxPix(Math.round(hx), Math.round(hy)-1, '#ffffff');
-        // 鱼下潜逃逸
-        if(backT < 40) pxDrawImgFish(bobX - 108 - backT*1.4, Math.min(304, sy + 16 + backT*2.2), col, 172, 1.2, {alpha:0.8, look});
+        // 鱼顺势下潜逃逸（接在跃出终点之后，不再瞬移）
+        if(backT < 40) pxDrawImgFish(bobX + 108 + backT*1.6, Math.min(306, sy + 12 + backT*2.0), col, 264 - backT*0.5, 0, {alpha:0.8, look, len:spec.len});
       }
       // 浮漂弹回原位的余波
       const bb = Math.max(0, 1 - T/26);
@@ -3891,12 +3994,16 @@ function pxDrawSceneImg(){
   else if(s.state==='caught'){
     const T = s.t, big = s.fishSize==='big';
     const col = pxRarityColor(s.fishRarity);
+    const look = pxFishLook(s.fishName||'', s.fishRarity);
+    const spec = fishDrawSpec(s.fishSize, look);        // 与咬钩/上鱼同尺寸，不再忽然变大
     if(big){
       // 巨物：半身冲出水面、水幕倾泻、珠光闪烁（对齐参考图6）
       const rise = Math.min(1, T/16);
-      // 鱼身中心逐渐抬升，但保持下半身在水面以下（半浸没）
-      const cy = sy + 8 - rise * 34;
       const cx = bobX + 100;
+      // 头朝上斜冲出水面；根据倾角抬高，保证整条鱼都在画面内
+      const ang = 16 + rise*70;
+      const need = Math.abs(Math.sin(ang*Math.PI/180)) * spec.len * 0.58;
+      const cy = Math.min(sy - 4 - rise*40, PX.H - 4 - need);
       // 水幕：鱼身与水面交界处的白色浪花带（集中在鱼体两侧）
       PX.ctx.globalAlpha = 0.66;
       for(let i=0;i<26;i++){
@@ -3906,16 +4013,19 @@ function pxDrawSceneImg(){
         pxRect(Math.round(wx), Math.round(wy), 2, 4 + (i%4)*4, '#eaf6ff');
       }
       PX.ctx.globalAlpha = 1;
-      pxDrawImgFish(cx, cy, col, -30, 1.55, {big:true, pearl:true, look: pxFishLook(s.fishName||'', s.fishRarity)});
+      pxDrawImgFish(cx, cy, col, ang, 0, {big:true, pearl:true, look, len: spec.len});
       // 大量飞溅
       if(T % 2 === 0 && T < 40) pxEmitSplash(cx - 60 + Math.random()*120, sy + 2, 20);
       pxDrawImgRings(cx, sy + 8, 150, 4, 0.36, 1.7);
       if(T === 2) pxShake();
     } else {
-      // 普通钓获：鱼被提在船侧，轻微摆动
-      const cy = sy - 22, cx = bobX + 70;
-      pxDrawImgFish(cx, cy, col, -46 + Math.sin(T*0.2)*8, 1.1, {look: pxFishLook(s.fishName||'', s.fishRarity)});
-      pxDrawImgLine(rod.ex, rod.ey, cx + 16, cy - 6, 6, 1);
+      // 普通钓获：鱼被提在船侧，嘴朝上（+90°= 正上方）、轻微摆动
+      const ang = 78 + Math.sin(T*0.2)*6;
+      const noseOff = spec.nose;
+      const cy = Math.min(sy - 20, PX.H - 6 - Math.abs(Math.sin(ang*Math.PI/180))*spec.len*0.58);
+      const cx = bobX + 70;
+      pxDrawImgFish(cx, cy, col, ang, 0, {look, len: spec.len});
+      pxDrawImgLine(rod.ex, rod.ey, cx + noseOff*0.18, cy - noseOff*0.98, 6, 1);
       if(T % 5 < 3) pxEmitSplash(cx, sy + 2, 5);
       pxDrawImgRings(cx, sy + 4, 100, 3, 0.24, 1.0);
     }
@@ -3930,11 +4040,14 @@ function pxDrawSceneImg(){
       PX.ctx.fillRect(0, i*3, PX.W, 2);
       PX.ctx.fillRect(0, PX.H-2-i*3, PX.W, 2);
     }
-    // 鱼潮：鱼群只在浮漂左侧水面巡游（避开船体区 x>=360）
+    // 鱼潮：鱼群只在浮漂左侧水面巡游（避开船体区 x>=360）；朝向=游动方向（往右游）
     for(let i=0;i<14;i++){
       const fx = ((PX.frame*4.2 + i*57) % 380) - 40;
-      const fy = sy + 22 + (i%4)*20 + Math.sin((PX.frame+i*8)*0.3)*4;
-      pxDrawImgFish(fx, fy, PAL.rare[(i%2)?'rare':'good'], 0, 0.85, {alpha:0.85});
+      const fy = Math.min(310, sy + 8 + (i%4)*5 + Math.sin((PX.frame+i*8)*0.3)*3);
+      const r = (i%2) ? 'rare' : 'good';
+      const look = pxFishLook(FISH_BODY[r][i % FISH_BODY[r].length], r);
+      const spec = fishDrawSpec((i%5 === 0) ? 'mid' : 'small', look);
+      pxDrawImgFish(fx, fy, PAL.rare[r], 180, 0, {alpha:0.85, look, len:spec.len});
     }
     const dy = Math.sin(PX.frame*1.0)*3;
     pxDrawImgLine(rod.ex, rod.ey, bobX, sy-6+dy, 4, 1);
@@ -3950,8 +4063,11 @@ function pxDrawSceneImg(){
       const rr = 18 + (orb/96)*84;
       // 环绕半径收窄（x 倍率 1.8→1.25），并夹在左侧水域，避免游到船与人身上
       const nx = Math.max(30, Math.min(352, bobX + Math.cos(ang)*rr*1.25));
-      pxDrawImgFish(nx, sy + 20 + Math.sin(ang)*rr*0.30,
-                    PAL.rare[(i%2)?'legend':'good'], Math.cos(ang)<0?0:180, 0.85, {alpha:0.85});
+      const r = (i%2) ? 'legend' : 'good';
+      const look = pxFishLook(FISH_BODY[r][i % FISH_BODY[r].length], r);
+      const spec = fishDrawSpec('mid', look);
+      pxDrawImgFish(nx, Math.min(308, sy + 12 + Math.sin(ang)*rr*0.24), PAL.rare[r],
+                    Math.sin(ang) > 0 ? 0 : 180, 0, {alpha:0.85, look, len:spec.len});
     }
     pxDrawImgBobber(bobX, sy - 6 + Math.sin(PX.frame*0.3));
     pxDrawImgLine(rod.ex, rod.ey, bobX, sy - 8, 4, 1);
@@ -3979,14 +4095,15 @@ function pxDrawUnderFish(){
       const prog = k < period/2 ? k/(period/2) : 1-(k-period/2)/(period/2);
       const fx = Math.round(80 + prog*(PX.W-160));
       const fy = Math.round(wl + band*0.18 + i*band*0.11);
-      pxDrawImgFish(fx, fy, '#5b7280', k<period/2?0:180, i===6?1.05:0.72, {alpha:0.55, look:pxFishLook('游鱼'+i,'common')});
+      pxDrawImgFish(fx, fy, '#5b7280', k<period/2?180:0, 0, {alpha:0.55, look:pxFishLook('游鱼'+i,'common'), len: fishDrawSpec(i===6?'mid':'small', pxFishLook('游鱼'+i,'common')).len});
     }
   } else if(s.state==='tide'){
     for(let i=0;i<22;i++){
       const sp = 3.6 + (i%3)*0.8;
       const fx = Math.round(((PX.frame*sp + i*37) % (PX.W+80)) - 40);
       const fy = Math.round(wl + band*0.10 + (i%4)*band*0.16 + Math.round(Math.sin((PX.frame+i*8)*0.3)*4));
-      pxDrawImgFish(fx, fy, PAL.rare[(i%2)?'rare':'good'], 0, i%5===0?1.05:0.78, {alpha:0.80, look:pxFishLook('鱼群'+(i%5),(i%2)?'rare':'good')});
+      const look = pxFishLook('鱼群'+(i%5),(i%2)?'rare':'good');
+      pxDrawImgFish(fx, fy, PAL.rare[(i%2)?'rare':'good'], 180, 0, {alpha:0.80, look, len: fishDrawSpec(i%5===0?'mid':'small', look).len});
     }
   } else if(s.state==='nest'){
     const cx = PX.L.bobX, cy = wl + band*0.42;
@@ -3996,7 +4113,8 @@ function pxDrawUnderFish(){
       const rr = 16 + (orb/72)*70;
       const fx = Math.round(cx + Math.cos(ang)*rr*1.6);
       const fy = Math.round(cy + Math.sin(ang)*rr*0.45);
-      pxDrawImgFish(fx, fy, PAL.rare[(i%2)?'legend':'good'], Math.cos(ang)<0?180:0, 0.78, {alpha:0.80, look:pxFishLook('窝鱼'+i,(i%2)?'legend':'good')});
+      const look = pxFishLook('窝鱼'+i,(i%2)?'legend':'good');
+      pxDrawImgFish(fx, fy, PAL.rare[(i%2)?'legend':'good'], Math.sin(ang) > 0 ? 0 : 180, 0, {alpha:0.80, look, len: fishDrawSpec('mid', look).len});
     }
   }
 }
@@ -4035,8 +4153,9 @@ function pxPopupDraw(){
   pxRect(cx - bw/2, cy + bh/2 - 2, bw, 2, col);
   pxRect(cx - bw/2, cy - bh/2, 2, bh, col);
   pxRect(cx + bw/2 - 2, cy - bh/2, 2, bh, col);
-  // 这条鱼本来的样子：体形/配色/花纹按鱼种生成
-  pxDrawImgFish(cx - 24, cy, col, 0, 1.05, {look});
+  // 这条鱼本来的样子：体形/配色/花纹按鱼种生成（尺寸按体型档：虾小、鲲大）
+  const pspec = fishDrawSpec('mid', look);
+  pxDrawImgFish(cx - 26, cy, col, 0, 0, {look, len: Math.min(96, pspec.len * 1.4)});
   // 四角外发光
   const glow = p.r === 'mystic' ? '#ffffff' : '#ffc340';
   pxRect(cx-66, cy-35, 6, 6, glow); pxRect(cx+60, cy-35, 6, 6, glow);
@@ -4157,7 +4276,7 @@ function pxDrawScene(){
       pxDrawBobber(bobX, wl, dy, PAL.bobber);
       pxDrawLine(PX._rodEx, PX._rodEy, bobX+2, wl+dy-2, 3);
       if(T%8<3) pxEmit(bobX, wl+4, 3, Math.PI*0.8, '#cfe8f5');
-      pxDrawImgFish(bobX-48, wl+52, col, 180, 0.85, {look: pxFishLook(s.fishName||'', s.fishRarity)});
+      pxDrawImgFish(bobX-48, wl+52, col, 78, 0, {look: pxFishLook(s.fishName||'', s.fishRarity), len: fishDrawSpec('small', pxFishLook(s.fishName||'', s.fishRarity)).len});
     } else if(mid){
       // 稀有/史诗：浮漂半沉，中等拉扯，船明显摇摆
       const dy = T<10 ? ((T%3<2)?4:0) : (T<22 ? 13 : 20);
@@ -4166,7 +4285,7 @@ function pxDrawScene(){
       pxDrawLine(PX._rodEx, PX._rodEy, bobX+2+sway, wl+dy-2, 4);
       if(T%6<3) pxEmit(bobX+sway, wl+5, 6, Math.PI*0.9, '#cfe8f5');
       pxRipples(wl+2, 4, 2, 1.4, pxMix(sk.waterTop, '#ffffff', 0.3));
-      pxDrawImgFish(bobX-54+sway, wl+60, col, 180, 1.0, {look: pxFishLook(s.fishName||'', s.fishRarity)});
+      pxDrawImgFish(bobX-54+sway, wl+60, col, 80, 0, {look: pxFishLook(s.fishName||'', s.fishRarity), len: fishDrawSpec('mid', pxFishLook(s.fishName||'', s.fishRarity)).len});
     } else {
       // 神隐巨物：浮漂被拽入水下，大面积柔和水花，船体大幅侧摆
       const dy = Math.min(52, T*3);
@@ -4177,8 +4296,8 @@ function pxDrawScene(){
       pxRipples(wl+2, 6, 2, 2.0, pxMix(sk.waterTop, '#ffffff', 0.4));
       const sway = Math.round(Math.sin(T*0.7)*18);
       pxDrawLine(PX._rodEx, PX._rodEy, bobX+2+sway, wl+dy, 8);
-      // 巨物：画这条鱼真实的样子（不再用矩形色块）
-      pxDrawImgFish(bobX-30, wl+58, col, 180, 1.35, {big:true, look: pxFishLook(s.fishName||'', s.fishRarity)});
+      // 巨物：画这条鱼真实的样子（不再用矩形色块，嘴朝上）
+      pxDrawImgFish(bobX-30, wl+58, col, 76, 0, {big:true, look: pxFishLook(s.fishName||'', s.fishRarity), len: fishDrawSpec('big', pxFishLook(s.fishName||'', s.fishRarity)).len});
       // 泄力器柔和光点（无强闪）
       for(let i=0;i<5;i++){
         const ph = (PX.frame + i*3) % 14;
@@ -4194,10 +4313,10 @@ function pxDrawScene(){
     const fx = Math.round(bobX - k*(bobX - PX.L.boatX - 90));
     const fy = Math.round(wl + 58 - k*(58 + (big?22:6)));
     pxDrawLine(PX._rodEx, PX._rodEy, fx, fy, 2-k*2);
-    if(big){
-      pxDrawImgFish(fx, fy, col, 0, 1.35, {big:true, look: pxFishLook(s.fishName||'', s.fishRarity)});
-    } else {
-      pxDrawImgFish(fx, fy, col, 0, 1.05, {look: pxFishLook(s.fishName||'', s.fishRarity)});
+    { // 与咬钩同尺寸（不再上鱼瞬间变大）
+      const rl = pxFishLook(s.fishName||'', s.fishRarity);
+      const rs = fishDrawSpec(s.fishSize, rl);
+      pxDrawImgFish(fx, fy, col, 0, 0, {big:rs.big, look: rl, len: rs.len});
     }
     if(T % 5 === 0) pxEmit(fx+4, wl+10, big?10:5, Math.PI*0.9, '#cfe8f5');
     if(big) pxRipples(wl+2, 5, 2, 1.8, pxMix(sk.waterTop, '#ffffff', 0.35));
@@ -4210,9 +4329,10 @@ function pxDrawScene(){
     const look = pxFishLook(s.fishName||'', s.fishRarity);
     const blink = (Math.floor(T/4) % 2) === 0;
     const cx = PX.L.boatX + 90, cy = wl + 30;
+    const cspec = fishDrawSpec(s.fishSize, look);
     if(blink){
       PX.ctx.globalAlpha = 0.95;
-      pxDrawImgFish(cx, cy, col, 0, 1.45, {big:true, pearl:true, look});
+      pxDrawImgFish(cx, cy, col, 0, 0, {big:cspec.big, pearl:cspec.big, look, len:cspec.len});
       PX.ctx.globalAlpha = 1;
       // 四角闪光
       pxPix(cx-34, cy-19, '#ffffff'); pxPix(cx+30, cy-19, '#ffffff');
