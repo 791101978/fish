@@ -3012,7 +3012,8 @@ function pxDraw(){
   if(imgReady){
     pxDrawBgImage(sk);
     pxDrawWaterGlimmer(sk);
-    pxDrawImgDog();        // 活狗：覆盖底图静止的狗，摇尾/点头（画在竿之前，让竿压在狗上方）
+    // 活狗覆盖层已停用：直接显示底图里原本那只狗（用户要求还原原样）
+    // pxDrawImgDog();
   } else {
     // ---- 层 1：远景 + 中景 ----
     pxDrawFar();
