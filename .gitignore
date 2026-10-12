@@ -1,0 +1,9 @@
+# 运行时数据（用户账号 / 会话 / 存档）存在部署环境里，不进仓库
+data/
+
+# 依赖与系统垃圾
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
