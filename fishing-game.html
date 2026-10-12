@@ -3281,198 +3281,238 @@ function pxDrawImgRings(cx, cy, maxR, n, alpha, speed){
  *  可整体旋转用于跃出水面；opt: {big, pearl, alpha, look}
  *  look = pxFishLook() 生成的鱼种外观：决定体形/配色/花纹/嘴须，
  *  不传则按传入的纯色绘制（兼容鱼群剪影等群演场景）。 */
+/* ============ 写实像素鱼精灵：按鱼名+品质预渲染一张精细鱼图（内存缓存） ============ */
+const _fishSpriteCache = {};
+function _pxRng32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function pxFishSprite(look, baseCol){
+  const key = look ? (look.family + '|' + look.shape + '|' + look.seed + '|' + look.order + '|' + (look.whisker ? 1 : 0)) : ('raw|' + baseCol);
+  if(_fishSpriteCache[key]) return _fishSpriteCache[key];
+
+  const mid = (look && look.mid) ? look.mid : baseCol;
+  const outline = pxMix(mid, '#05090f', 0.74);
+  const dark    = pxMix(mid, '#0a141c', 0.46);
+  const light   = pxMix(mid, '#f2f7fa', 0.46);
+  const belly   = pxMix(mid, '#fafcfe', 0.66);
+  const pat     = (look && look.patCol) ? look.patCol : pxMix(mid, '#0a141c', 0.30);
+  const patDark = pxMix(mid, '#04080d', 0.58);
+  const patLite = pxMix(mid, '#e8eef2', 0.30);
+  const finC    = pxMix(mid, '#131e29', 0.40);
+  const finEdge = pxMix(mid, '#0a1218', 0.60);
+
+  const rng = _pxRng32(look ? (look.seed || 7) : pxHashStr(baseCol));
+
+  /* shape → 体高 / 体长系数（鳗细长 / 鲀短圆 / 鲟鳢修长 / 鲸鲲粗壮） */
+  let hMul = 1, lMul = 1;
+  if(look){
+    if(look.shape === 'eel'){ lMul = 1.28; hMul = 0.46; }
+    else if(look.shape === 'chub'){ lMul = 0.84; hMul = 1.32; }
+    else if(look.shape === 'long'){ lMul = 1.16; hMul = 0.72; }
+    else if(look.shape === 'whale'){ lMul = 1.04; hMul = 1.46; }
+  }
+
+  const W = 92, H = 40, cy = 20;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+
+  const noseX = 7, BL = Math.round(62 * lMul), tailX = noseX + BL;
+  const H2 = 11.6 * hMul;
+
+  /* 轮廓半高：t 0=吻部 → 1=尾柄（收尖的头部 → 最高点 → 收窄尾柄） */
+  function prof(t){
+    let h;
+    if(t < 0.30)      h = 0.26 + 0.74 * Math.sin(Math.min(1, t / 0.30) * Math.PI / 2);
+    else if(t < 0.60) h = 1;
+    else              h = 1 - 0.76 * Math.pow((t - 0.60) / 0.40, 1.32);
+    return Math.max(0.12, h) * H2;
+  }
+  function topAt(x){ return cy - prof((x - noseX) / BL); }
+  function botAt(x){ return cy + prof((x - noseX) / BL); }
+  function finPx(x, y, colr){
+    x = Math.round(x); y = Math.round(y);
+    if(x < 0 || y < 0 || x >= W || y >= H) return;
+    g.fillStyle = colr; g.fillRect(x, y, 1, 1);
+  }
+
+  /* ---- 1. 鳍（先画，压在身体后面） ---- */
+  /* 背鳍：前段棘刺带缺口 + 后段软条圆弧（鲈形/ warbash 参考图同款） */
+  const dA = noseX + Math.round(BL * 0.30), dB = noseX + Math.round(BL * 0.62);
+  const spineN = 5;
+  for(let x = dA; x <= dB; x++){
+    const k = (x - dA) / (dB - dA);
+    let hh;
+    if(k < 0.52){
+      hh = H2 * (0.30 + 0.30 * Math.sin(k / 0.52 * Math.PI * 0.9));
+      if(Math.abs(k / 0.52 * spineN - Math.round(k / 0.52 * spineN)) < 0.14) hh *= 0.72;  /* 棘间缺口 */
+    }else{
+      const k2 = (k - 0.52) / 0.48;
+      hh = H2 * (0.10 + 0.34 * Math.sin(k2 * Math.PI));
+    }
+    hh = Math.max(1, Math.round(hh));
+    const tb = topAt(x) - 1;
+    for(let i = 0; i < hh; i++) finPx(x, tb - i, i === hh - 1 ? finEdge : finC);
+  }
+  /* 臀鳍 */
+  const aA = noseX + Math.round(BL * 0.60), aB = noseX + Math.round(BL * 0.76);
+  for(let x = aA; x <= aB; x++){
+    const k = (x - aA) / (aB - aA);
+    const hh = Math.max(1, Math.round(H2 * 0.26 * Math.sin(k * Math.PI)));
+    const bb = botAt(x);
+    for(let i = 0; i < hh; i++) finPx(x, bb + i, i === hh - 1 ? finEdge : finC);
+  }
+  /* 尾鳍：分叉新月 + 鳍条刻线 */
+  const TW = 13;
+  for(let i = 0; i < TW; i++){
+    const k = i / (TW - 1);
+    const spread = H2 * (0.32 + 0.72 * Math.pow(k, 1.12));
+    const th = Math.max(2, Math.round(4 - k * 2.2));
+    const x = tailX + i;
+    finPx(x, cy - spread, finEdge); finPx(x, cy + spread, finEdge);
+    for(let j = 1; j < th; j++){
+      finPx(x, cy - spread + j, (i % 3 === 1 && j === 1) ? finEdge : finC);
+      finPx(x, cy + spread - j, (i % 3 === 1 && j === 1) ? finEdge : finC);
+    }
+  }
+  /* 尾柄与身体衔接 */
+  for(let i = 0; i < 4; i++){
+    const x = tailX - 1 - i;
+    const hh = prof((x - noseX) / BL);
+    for(let y = Math.round(cy - hh); y <= Math.round(cy + hh); y++) finPx(x, y, finC);
+  }
+
+  /* ---- 2. 躯干：逐列光栅 + 背深腹亮分层 + 轮廓线 ---- */
+  const mask = new Uint8Array(W * H);
+  for(let x = noseX; x < tailX; x++){
+    const t = (x - noseX) / BL;
+    const h = prof(t);
+    const y0 = Math.round(cy - h), y1 = Math.round(cy + h);
+    for(let y = y0; y <= y1; y++){
+      if(y < 0 || y >= H) continue;
+      mask[y * W + x] = 1;
+      const v = (y - (cy - h)) / (2 * h);        /* 0 背 → 1 腹 */
+      let colr;
+      if(y === y0 || y === y1 || x === tailX - 1) colr = outline;
+      else if(v < 0.30) colr = dark;
+      else if(v < 0.60) colr = mid;
+      else if(v < 0.84) colr = light;
+      else colr = belly;
+      if(t < 0.05 && colr !== outline) colr = dark;   /* 吻部略深 */
+      g.fillStyle = colr; g.fillRect(x, y, 1, 1);
+    }
+  }
+  function bodyPx(x, y, colr, alpha){
+    x = Math.round(x); y = Math.round(y);
+    if(x < 0 || y < 0 || x >= W || y >= H) return;
+    if(!mask[y * W + x]) return;
+    g.globalAlpha = alpha == null ? 1 : alpha;
+    g.fillStyle = colr; g.fillRect(x, y, 1, 1);
+    g.globalAlpha = 1;
+  }
+
+  /* ---- 3. 斑驳迷彩花纹（参考图同款：不规则深色斑块群 + 细碎斑点） ---- */
+  const nBlob = 9 + Math.floor(rng() * 6);
+  for(let b = 0; b < nBlob; b++){
+    const bx = noseX + BL * (0.14 + rng() * 0.66);
+    const by = cy - H2 * (0.05 + rng() * 0.62);
+    const rx = 1.6 + rng() * 3.6, ry = 1.2 + rng() * 2.6;
+    const isDark = rng() < 0.72;
+    for(let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++){
+      for(let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++){
+        const q = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if(q > 1) continue;
+        bodyPx(bx + dx, by + dy, isDark ? patDark : patLite, q > 0.55 ? 0.42 : 0.62);
+      }
+    }
+  }
+  const nDot = 26 + Math.floor(rng() * 18);
+  for(let d = 0; d < nDot; d++){
+    bodyPx(noseX + BL * (0.10 + rng() * 0.78), cy - H2 * (0.55 + rng() * 0.75), patDark, 0.38 + rng() * 0.22);
+  }
+  /* 腹部微光 */
+  for(let x = noseX; x < tailX; x++){
+    bodyPx(x, cy + prof((x - noseX) / BL) * 0.62, patLite, 0.10);
+  }
+
+  /* 胸鳍：身体侧面斜向下后方的小扇（画在身体之上） */
+  const pX = noseX + Math.round(BL * 0.33), pL = Math.max(4, Math.round(H2 * 0.6));
+  for(let i = 0; i < pL; i++){
+    const k = i / pL;
+    const yy = cy + Math.round(H2 * 0.14 + k * H2 * 0.52);
+    const ww = Math.max(1, Math.round(H2 * 0.24 * (1 - k * 0.55)));
+    for(let j = 0; j < ww; j++) finPx(pX + i, yy + j, (j === ww - 1 || i === pL - 1) ? finEdge : finC);
+  }
+
+  /* ---- 4. 头部细节：鳃盖弧线 / 眼 / 嘴 / 须 ---- */
+  const gx = noseX + Math.round(BL * 0.24);
+  const gh = prof((gx - noseX) / BL);
+  for(let i = -Math.round(gh * 0.8); i <= Math.round(gh * 0.8); i++){
+    const off = Math.round(Math.cos(i / (gh * 0.8) * Math.PI / 2) * 2);
+    bodyPx(gx + off, cy + i, outline, 0.42);
+  }
+  const ex = noseX + Math.round(BL * 0.115), ey = Math.round(cy - H2 * 0.26);
+  g.fillStyle = '#eef4f8'; g.fillRect(ex - 1, ey - 1, 3, 3);
+  g.fillStyle = '#0b1218'; g.fillRect(ex, ey, 2, 2);
+  g.fillStyle = '#ffffff'; g.fillRect(ex + 1, ey, 1, 1);
+  g.fillStyle = outline; g.fillRect(noseX, Math.round(cy + H2 * 0.18), 2, 1);
+  if(look && look.whisker){
+    g.fillStyle = finEdge;
+    g.fillRect(noseX + 1, Math.round(cy + H2 * 0.22), 1, 1);
+    g.fillRect(noseX, Math.round(cy + H2 * 0.22) + 2, 1, 1);
+    g.fillRect(noseX + 1, Math.round(cy + H2 * 0.30), 1, 1);
+    g.fillRect(noseX + 1, Math.round(cy - H2 * 0.30), 1, 1);
+    g.fillRect(noseX, Math.round(cy - H2 * 0.30) - 2, 1, 1);
+  }
+
+  _fishSpriteCache[key] = cv;
+  return cv;
+}
+
+/* ============ 贴图渲染：把预渲染精灵按朝向/缩放贴到场景（对外接口不变） ============ */
 function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
   opt = opt || {};
   const look = opt.look;
+  const spr = pxFishSprite(look, col);
   const c = PX.ctx;
-  /* 默认尺寸比旧版略小，让水面鱼影更像参考图里的小鱼 */
-  let L = Math.round((opt.big ? 96 : 54) * (scale || 1));
-  let H = Math.max(6, Math.round(L * 0.34));
-
-  /* 体形档位：细长 / 短圆 / 修长 / 粗壮 */
-  if(look){
-    if(look.shape === 'eel'){ L = Math.round(L*1.34); H = Math.max(5, Math.round(H*0.44)); }
-    else if(look.shape === 'chub'){ L = Math.round(L*0.80); H = Math.round(H*1.45); }
-    else if(look.shape === 'long'){ L = Math.round(L*1.20); H = Math.max(6, Math.round(H*0.66)); }
-    else if(look.shape === 'whale'){ L = Math.round(L*1.05); H = Math.round(H*1.58); }
-  }
-
-  const midC = (look && look.mid) ? look.mid : col;
-  const hi  = pxMix(midC, '#f6f9fc', 0.48);  // 腹部微亮
-  const lo  = pxMix(midC, '#0a141c', 0.50);  // 背部加深
-  const fin = pxMix(midC, '#16222c', 0.42);  // 鳍膜偏暗
-  const patCol = look ? look.patCol : pxMix(midC, '#0a141c', 0.28);
-
+  const SW = spr.width, SH = spr.height;
+  /* 目标身长与旧版一致：普通 54 / 巨物 96（62 = 精灵身长基准） */
+  const targetL = (opt.big ? 96 : 54) * (scale || 1);
+  const s = Math.max(0.35, targetL / 62);
   c.save();
   c.translate(Math.round(cx), Math.round(cy));
   if(opt.alpha != null) c.globalAlpha = opt.alpha;
   /* 朝向：朝左时水平镜像 + 补偿旋转，保持鱼背永远朝上 */
-  if(Math.cos(dirDeg * Math.PI/180) < 0){
-    c.rotate((dirDeg - 180) * Math.PI/180);
-    c.scale(-1, 1);
+  if(Math.cos(dirDeg * Math.PI / 180) < 0){
+    c.rotate((dirDeg - 180) * Math.PI / 180);
+    c.scale(-s, s);
   }else{
-    c.rotate(dirDeg * Math.PI/180);
+    c.rotate(dirDeg * Math.PI / 180);
+    c.scale(s, s);
   }
-
-  const cols = Math.round(L);
-  const nose = L * 0.5, tail = -L * 0.5;
-
-  /* 预计算各列厚度，给花纹/鳍定位复用 */
-  const thArr = [];
-  for(let i=0;i<cols;i++){
-    const k = i/cols;
-    let th;
-    if(k < 0.12)       th = H * (0.10 + k*0.95);
-    else if(k < 0.55)  th = H * (0.22 + 0.66 * Math.sin((k-0.12)/0.43 * Math.PI * 0.78));
-    else               th = H * (0.90 - 0.78 * Math.pow((k-0.55)/0.45, 1.65));
-    th = Math.max(2, Math.round(th));
-    thArr.push(th);
-  }
-
-  /* ---------- 躯干：背深 / 体侧 / 腹亮 的柔和渐变 ---------- */
-  for(let i=0;i<cols;i++){
-    const th = thArr[i];
-    const yTop = -Math.round(th/2);
-    const b1 = Math.max(1, Math.round(th*0.30));
-    const b3 = Math.max(1, Math.round(th*0.34));
-    const b2 = Math.max(1, th - b1 - b3);
-    pxRect(tail + i, yTop, 1, b1, lo);
-    pxRect(tail + i, yTop + b1, 1, b2, midC);
-    pxRect(tail + i, yTop + b1 + b2, 1, b3, hi);
-    /* 侧线 */
-    if(i % 5 === 0 && th > 5){
-      c.globalAlpha = 0.20;
-      pxRect(tail + i, yTop + Math.round(th*0.50), 1, 1, lo);
-      c.globalAlpha = 1;
-    }
-    /* 细小鳞片 */
-    if(th > 6 && i % 3 === 1){
-      c.globalAlpha = 0.13;
-      pxPix(tail + i, yTop + Math.round(th*0.52), lo);
-      c.globalAlpha = 1;
-    }
-  }
-
-  /* ---------- 花纹（都很淡） ---------- */
-  if(look && look.patType === 1){
-    /* 鳟鱼式稀疏斑点 */
-    c.globalAlpha = 0.32;
-    for(let i=0;i<6;i++){
-      const sxp = tail + Math.round(cols * (0.24 + ((i*0.26 + (look.seed%11)/11 * 0.16) % 0.48)));
-      const syp = -Math.round(H*0.16) + ((i*4 + (look.seed%5)) % Math.max(2, Math.round(H*0.40)));
-      pxPix(sxp, syp, patCol);
-      pxPix(sxp+1, syp, patCol);
-      pxPix(sxp, syp+1, patCol);
-    }
-    c.globalAlpha = 1;
-  }else if(look && look.patType === 2){
-    /*  faint 竖纹 */
-    for(let i=0;i<cols;i++){
-      if(i % 7 === 3 && thArr[i] > 5){
-        c.globalAlpha = 0.24;
-        pxRect(tail + i, -Math.round(thArr[i]/2)+1, 1, thArr[i]-2, patCol);
-        c.globalAlpha = 1;
-      }
-    }
-  }else if(look && look.patType === 3){
-    /* 侧线横带 */
-    c.globalAlpha = 0.22;
-    for(let i=0;i<cols;i++){
-      const th = thArr[i];
-      if(th > 5) pxRect(tail + i, -Math.round(th*0.08), 1, Math.max(1, Math.round(th*0.22)), patCol);
-    }
-    c.globalAlpha = 1;
-  }
-
-  /* ---------- 尾鳍：分叉新月形 ---------- */
-  const forkK = look ? (0.48 + (look.seed % 5) * 0.13) : 0.70;
-  const tw = Math.max(4, Math.round(L * 0.22));
-  for(let i=0;i<tw;i++){
-    const k = i/tw;
-    const spread = Math.round(H * (0.30 + k*0.58*forkK));
-    const fw = Math.max(2, Math.round(H*0.22 * (1 - k*0.55)));
-    pxRect(tail - tw + i, -spread, 1, fw, fin);
-    pxRect(tail - tw + i, Math.round(H*0.08), 1, fw, fin);
-    if(k > 0.75){
-      c.globalAlpha = 0.40;
-      pxRect(tail - tw + i, -spread - 1, 1, 2, hi);
-      pxRect(tail - tw + i, Math.round(H*0.08) + fw - 1, 1, 2, hi);
-      c.globalAlpha = 1;
-    }
-  }
-
-  /* ---------- 背鳍 ---------- */
-  const finK = look ? (0.62 + ((look.seed >> 4) % 4) * 0.26) : 1;
-  const d0 = Math.round(cols * 0.32), dl = Math.max(5, Math.round(cols * 0.28));
-  for(let i=0;i<dl;i++){
-    const k = i/dl;
-    const hh = Math.max(1, Math.round(H * 0.30 * finK * Math.sin(k * Math.PI * 0.95)));
-    const bodyTh = thArr[Math.min(cols-1, d0+i)] || H;
-    pxRect(tail + d0 + i, -Math.round(bodyTh/2) - hh, 1, hh + 1, fin);
-  }
-
-  /* ---------- 臀鳍 ---------- */
-  const a0 = Math.round(cols * 0.26), al = Math.max(4, Math.round(cols * 0.13));
-  for(let i=0;i<al;i++){
-    const k = i/al;
-    const hh = Math.max(1, Math.round(H * 0.18 * Math.sin(k * Math.PI)));
-    const bodyTh = thArr[Math.min(cols-1, a0+i)] || H;
-    pxRect(tail + a0 + i, Math.round(bodyTh/2), 1, hh, fin);
-  }
-
-  /* ---------- 胸鳍 ---------- */
-  const px0 = Math.round(cols * 0.42);
-  const pecLen = Math.max(3, Math.round(L*0.12));
-  for(let i=0;i<pecLen;i++){
-    const k = i/pecLen;
-    const yy = Math.round(H*0.10 + k*H*0.20);
-    const ww = Math.max(2, Math.round(H*0.20*(1-k*0.45)));
-    pxRect(tail + px0 + i, yy, 1, ww, fin);
-  }
-
-  /* ---------- 头：小眼 / 鳃盖 / 嘴 ---------- */
-  const ex = tail + Math.round(cols * 0.78);
-  const eyy = -Math.round(H * 0.08);
-  pxRect(ex, eyy, 3, 3, '#f0f4f8');          // 眼白
-  pxRect(ex+1, eyy+1, 2, 2, '#0d141a');      // 瞳孔
-  pxPix(ex+2, eyy+1, '#ffffff');             // 高光
-
-  /* 鳃盖 */
-  const gx = tail + Math.round(cols * 0.65);
-  for(let i=0;i<Math.max(3, Math.round(H*0.42)); i++){
-    const off = Math.round(Math.sin(i/Math.max(3, H*0.42) * Math.PI) * 2);
-    pxRect(gx - off, -Math.round(H*0.22) + i, 1, 1, lo);
-  }
-
-  /* 嘴 */
-  pxRect(tail + cols - 2, -Math.round(H*0.03), 2, 1, lo);
-  pxRect(tail + cols - 2, Math.round(H*0.03), 2, 1, lo);
-
-  /* 嘴须 */
-  if(look && look.whisker){
-    const wx = tail + cols - 1;
-    c.globalAlpha = 0.75;
-    pxPix(wx, Math.round(H*0.10) + 1, fin);
-    pxPix(wx + 1, Math.round(H*0.10) + 3, fin);
-    pxPix(wx + 2, Math.round(H*0.10) + 5, fin);
-    pxPix(wx, -Math.round(H*0.08) - 1, fin);
-    pxPix(wx + 1, -Math.round(H*0.08) - 3, fin);
-    c.globalAlpha = 1;
-  }
-
-  /* 传说/神隐：柔和珠光 */
-  if(opt.pearl || (look && look.order >= 4)){
-    c.globalAlpha = 0.40 + Math.sin(PX.frame * 0.35) * 0.20;
-    for(let i=0;i<8;i++){
-      const sx = tail + ((PX.frame * 1.0 + i * 19) % cols);
-      const sy = -Math.round(H*0.30) + ((i * 5) % Math.max(2, Math.round(H*0.65)));
-      pxPix(sx, sy, i % 2 === 0 ? '#e8f4ff' : '#fff4d8');
-    }
-    c.globalAlpha = 1;
-  }
-
+  /* 精灵：吻部 x≈7、尾尖 x≈85 → 视觉中心 ≈46；垂直中心 20 */
+  c.drawImage(spr, -46, -20);
   c.restore();
   if(opt.alpha != null) c.globalAlpha = 1;
+
+  /* 传说/神隐：柔和珠光扫过 */
+  if(opt.pearl || (look && look.order >= 4)){
+    c.save();
+    c.globalAlpha = 0.40 + Math.sin(PX.frame * 0.35) * 0.20;
+    const bw = SW * s, bh = SH * s;
+    for(let i = 0; i < 8; i++){
+      const sxp = Math.round(cx - bw / 2 + ((PX.frame * 1.0 + i * 23) % bw));
+      const syp = Math.round(cy - bh * 0.30 + ((i * 7) % Math.max(2, bh * 0.6)));
+      c.fillStyle = i % 2 === 0 ? '#e8f4ff' : '#fff4d8';
+      c.fillRect(sxp, syp, 1, 1);
+    }
+    c.restore();
+  }
 }
 
 /** 水花（图像模式）：白蓝色放射状飞溅，参考图出水处的大簇水花 */
