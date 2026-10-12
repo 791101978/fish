@@ -1992,7 +1992,12 @@ const PX = {
   on:true,
   raf:0,
   lastDraw:0,
-  fps:24,                // 前台 24fps，后台降至 8fps
+  fps:24,                // 逻辑帧率：24 逻辑帧/秒 = 动画节拍基准（与渲染帧率解耦）
+  maxFps:60,             // 渲染帧率上限：以 60fps 采样 24fps 的动画 → 提帧顺滑 2.5 倍
+  dtL:1,                 // 本次绘制推进了多少逻辑帧（小数），各层按它做时间缩放
+  _prevTs:0,             // rAF 上一帧时间戳
+  _rAcc:0,               // 渲染节拍累加器（保留余数，消除取整抖动）
+  _obsIv:0,              // 实测 rAF 间隔（平滑值），用于决定隔几帧渲染
   cv:null, ctx:null,
   frame:0,               // 全局帧计数（波纹/游动/粒子）
   glideTimer:null,
@@ -2188,6 +2193,30 @@ function pxFishLook(name, rarity){
 /** 取当前应显示的渔场（切场淡出期间仍显示旧 skin） */
 function pxSkin(){ return PX.skin || SPOT_SKIN[SPOT_ORDER[0]]; }
 
+/* ---- 离散触发闸门 ----
+   逻辑帧改为小数推进（提帧后同一逻辑帧会被画多次）后，
+   `T % 4 === 0` 这类整数帧判定不再成立；改用闸门：
+   只在跨过整数帧（或每 period 个逻辑帧）时触发一次，
+   粒子/抖动频率与原先 24fps 完全一致，不会因提帧而重复触发。 */
+const _pxGate = {}, _pxOnce = {};
+function pxGate(key, frame, period){
+  const slot = Math.floor(frame / (period || 1));
+  if(_pxGate[key] === slot) return false;
+  _pxGate[key] = slot;
+  return true;
+}
+/** t 首次跨过 th 的那一帧返回 true（用于「到第 N 帧抖动一次」这类硬事件） */
+function pxOnce(key, t, th){
+  if(t < th) return false;
+  if(_pxOnce[key]) return false;
+  _pxOnce[key] = true;
+  return true;
+}
+function pxGateReset(){
+  for(const k in _pxGate) _pxGate[k] = null;
+  for(const k in _pxOnce) _pxOnce[k] = false;
+}
+
 /* ---- 场景控制 ---- */
 function pxSetScene(state, opt){
   opt = opt || {};
@@ -2198,6 +2227,9 @@ function pxSetScene(state, opt){
   if(opt.name !== undefined) s.fishName = opt.name;   // 鱼名 → 决定这条鱼长什么样
   s.result = opt.result || '';
   s.phase = opt.phase || '';
+  pxGateReset();                                      // 新分镜：离散事件计时归零
+  /* 鱼体末帧锚点：咬钩→起鱼→展示三段接力用，只有离开「上鱼链路」才清空 */
+  if(state==='cast' || state==='waiting' || state==='nest' || state==='tide' || state==='lost') s.lastFish = null;
   // 全域事件占用独立时长，避免被环境检查立即打回等待
   if(state==='nest') PX.nestUntil = Date.now() + 12000;
   if(state==='tide') PX.tideUntil = Date.now() + 12000;
@@ -2205,7 +2237,7 @@ function pxSetScene(state, opt){
   if(state==='bite' || state==='lost'){
     const o = RARITY[s.fishRarity] ? RARITY[s.fishRarity].order : 0;
     const power = s.fishSize==='big' ? 7.5 : (s.fishSize==='mid' ? 3.2 : 1.2);
-    pxSwayImpulse((PX.frame%2 ? 1 : -1) * power, o);
+    pxSwayImpulse((Math.floor(PX.frame)%2 ? 1 : -1) * power, o);
   }
   // 起鱼 → 轻微回摆
   if(state==='reel') pxSwayImpulse(s.fishSize==='big' ? 3.5 : 1.6, 0);
@@ -2240,13 +2272,26 @@ function pxStart(){
   PX.ctx = PX.cv.getContext('2d');
   PX.ctx.imageSmoothingEnabled = false;
   if(!PX.skin) pxApplySpot(S ? S.spot : SPOT_ORDER[0]);
-  let last = 0;
+  /* 渲染节拍：dt 全额交给动画时间轴，余数保留 → 帧间隔恒定，不再出现
+     「50ms / 33ms / 50ms」的取整抖动（原先 last=ts 的写法会周期性丢帧）。 */
+  PX._prevTs = 0; PX._rAcc = 0; PX._obsIv = 0;
   const loop = (ts)=>{
     PX.raf = requestAnimationFrame(loop);
-    const iv = 1000 / PX.fps;
-    if(ts - last < iv) return;
-    last = ts;
-    pxDraw();
+    if(!PX._prevTs){ PX._prevTs = ts; return; }
+    let dt = ts - PX._prevTs;
+    PX._prevTs = ts;
+    if(dt < 0) dt = 0;
+    if(dt > 250) dt = 250;                     // 切走/切回：丢弃积压时间，避免瞬跳
+    PX._rAcc += dt;
+    /* 渲染节拍：按实测 rAF 间隔取整数倍节拍（60Hz 屏每帧都出；
+       120/144Hz 高刷屏每 2 帧出一帧）→ 既不空转，也不会因阈值卡在
+       16.67 边界而误判成「隔帧」（那是 24→12fps 级别的灾难）。 */
+    const obs = PX._obsIv || dt || 16.7;
+    PX._obsIv = obs + (dt - obs) * 0.12;
+    const mult = Math.max(1, Math.round((1000 / (PX.maxFps || 60)) / PX._obsIv));
+    if(PX._rAcc < PX._obsIv * mult * 0.75) return;
+    const use = PX._rAcc; PX._rAcc = 0;
+    pxDraw(use);
   };
   PX.raf = requestAnimationFrame(loop);
 }
@@ -2269,8 +2314,9 @@ function pxToggle(force){
 }
 /* 页面不可见时降帧（省电，符合挂机场景）：24fps → 8fps，粒子预算减半 */
 function pxOnVisibility(){
-  if(document.hidden){ PX.bg = true; PX.fps = 8; }
-  else { PX.bg = false; PX.fps = 24; }
+  if(document.hidden){ PX.bg = true; PX.fps = 8; PX.maxFps = 8; }
+  else { PX.bg = false; PX.fps = 24; PX.maxFps = 60; }
+  PX._prevTs = 0; PX._rAcc = 0; PX._obsIv = 0;   // 复位节拍器：切回前台不会攒出巨大 dt
 }
 /** 按动画视窗容器的可用空间等比确定窗口尺寸（宽幅 720/320 永不变形）。
     规则：优先铺满宽度；若由此得到的高度超出容器，则改为按高度等比缩小。
@@ -2603,7 +2649,7 @@ function pxReflect(){
     }
     PX.reflAge = 0;
   }
-  PX.reflAge++;
+  PX.reflAge += (PX.dtL || 1);
   const cols = PX.reflCols;
   // 倒影区 = 地平线→水面线之间的「远水面」。参考图是镜面级反射：
   // 天空色 → 远山倒影 → 林带倒影，全部上下翻转并按深度衰减，
@@ -3000,15 +3046,16 @@ function pxEmit(cx, cy, power, spread, col){
   }
 }
 function pxStepParticles(){
-  if(PX.bg){ /* 后台仅推进不绘制 */ }
+  const dl = PX.dtL || 1;
+  const damp = Math.pow(0.965, dl);
   for(let i=0;i<PX.P.length;i++){
     const p = PX.P[i];
     if(!p.alive) continue;
-    p.life++;
+    p.life += dl;
     if(p.life > p.max){ p.alive = false; continue; }
-    p.vy += 0.055;                    // 轻微重力
-    p.vx *= 0.965; p.vy *= 0.965;     // 阻尼
-    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.055 * dl;               // 轻微重力
+    p.vx *= damp; p.vy *= damp;       // 阻尼
+    p.x += p.vx * dl; p.y += p.vy * dl;
     if(p.y > PX.H-1){ p.alive = false; continue; }
     if(PX.bg) continue;
     const k = 1 - p.life/p.max;
@@ -3023,23 +3070,31 @@ function pxStepParticles(){
    主绘制：分层管线
    远景山林 → 水面层 → 倒影层 → 水下层 → 船/钓手/竿/漂 → 粒子
    ========================================================================= */
-function pxDraw(){
+function pxDraw(dt){
   const c = PX.ctx; if(!c) return;
-  PX.frame++;
-  const s = PX.scene; s.t++;
+  /* ---- 时间轴：逻辑帧（24/s）与渲染帧（≤60/s）解耦 ----
+     dtL = 本次绘制推进的逻辑帧数（可为小数）。
+     所有动画都按逻辑帧推进 → 渲染帧率提高只增加采样密度
+     （原来是 24 次/秒采样，现在 60 次/秒），动画速度与节奏完全不变。 */
+  const li = 1000 / (PX.fps || 24);
+  let dtL = (dt > 0 ? dt : li) / li;
+  if(dtL > 6) dtL = 6;
+  PX.dtL = dtL;
+  PX.frame += dtL;
+  const s = PX.scene; s.t += dtL;
   const W = PX.W, H = PX.H, sk = pxSkin();
   const t = PX.frame;
 
-  // 阻尼振荡衰减
-  PX.swayV += -PX.sway * 0.06;      // 弹性回正
-  PX.swayV *= 0.90;                 // 阻尼
-  PX.sway  += PX.swayV;
-  if(Math.abs(PX.sway) < 0.002) PX.sway = 0;
+  // 阻尼振荡衰减（按逻辑帧数缩放：帧率变化不影响余摆手感）
+  PX.swayV += -PX.sway * 0.06 * dtL;      // 弹性回正
+  PX.swayV *= Math.pow(0.90, dtL);        // 阻尼
+  PX.sway  += PX.swayV * dtL;
+  if(Math.abs(PX.sway) < 0.002 && Math.abs(PX.swayV) < 0.002){ PX.sway = 0; PX.swayV = 0; }
 
   // 淡入淡出推进
   const f = PX.fade;
   if(f.dir !== 0){
-    f.a += f.dir * 0.13;
+    f.a += f.dir * 0.13 * dtL;
     if(f.a <= 0){                       // 淡出完成 → 替换皮肤
       f.a = 0;
       if(f.pending){ pxApplySpot(f.pending); f.pending = null; }
@@ -3786,8 +3841,9 @@ function pxDrawSceneImg(){
     ang = s.result==='break' ? 198 : 204;
     pull = s.result==='break' ? 26 : 4;
   }
-  /* 基准姿势一阶低通：任何事件硬切都不会出现单帧跳变（「竿自己跳一下」的根因） */
-  const BASE_GAIN = 0.3;
+  /* 基准姿势一阶低通：任何事件硬切都不会出现单帧跳变（「竿自己跳一下」的根因）。
+     增益按逻辑帧数换算 → 提帧后平滑时间常数不变。 */
+  const BASE_GAIN = 1 - Math.pow(0.7, PX.dtL || 1);
   if(PX._rodAngS == null){ PX._rodAngS = ang; PX._rodPullS = pull; }
   else {
     PX._rodAngS  += (ang  - PX._rodAngS ) * BASE_GAIN;
@@ -3851,7 +3907,7 @@ function pxDrawSceneImg(){
           }
           PX.ctx.globalAlpha = 1;
         }
-        if(T % 5 === 0 && T < 44) pxEmitSplash(bobX, sy, 6);
+        if(T < 44 && pxGate('castSplash', T, 5)) pxEmitSplash(bobX, sy, 6);
         if(T > 46) pxToIdle();          // 入水安定 → 待机（浮漂就位）
       }
     }
@@ -3891,14 +3947,14 @@ function pxDrawSceneImg(){
         PX.ctx.globalAlpha = 1;
       }
     }
-    // 轻微咬口预兆
-    if(Math.random() < 0.014 && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
+    // 轻微咬口预兆（概率按逻辑帧折算，提帧后触发频率不变）
+    if(Math.random() < 0.014 * (PX.dtL || 1) && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
     if(s.phase==='nibble'){
-      s.nibbleT = (s.nibbleT||0) + 1;
+      s.nibbleT = (s.nibbleT||0) + (PX.dtL || 1);
       const n = s.nibbleT;
       const dy = (n%6 < 3) ? 7 : -6;                     // 抖动幅度加大
       pxDrawImgBobber(bobX + drift, bY + dy);
-      if(n % 4 === 0) pxEmitSplash(bobX + drift, sy + 2, 4);
+      if(pxGate('nibbleSplash', n, 4)) pxEmitSplash(bobX + drift, sy + 2, 4);
       if(n > 22) s.phase = '';
     }
   }
@@ -3917,7 +3973,7 @@ function pxDrawSceneImg(){
     pxDrawImgBobber(bobX + sway, bY);
     pxDrawImgRings(bobX + sway, sy + 3, 165, 4, 0.42, 2.1);
     // 水花：咬钩越猛越大
-    if(T % 4 === 0) pxEmitSplash(bobX + sway, sy + 2, small?5:(mid?12:20));
+    if(pxGate('biteSplash', T, 4)) pxEmitSplash(bobX + sway, sy + 2, small?5:(mid?12:20));
     /* 鱼嘴精确咬在钩弯上：钩位=浮漂正下方，鱼中心沿「嘴→尾」方向下垂，
        挣扎时整条鱼绕钩摆，嘴永远钉在钩上 */
     const biteLook = pxFishLook(s.fishName||'', s.fishRarity);
@@ -3931,6 +3987,7 @@ function pxDrawSceneImg(){
     pxDrawImgLine(rod.ex, rod.ey, hx + 7*Math.sin(ma - Math.PI/2), hy - 7*Math.cos(ma - Math.PI/2), small?6:1, small?1:2);
     pxDrawImgFish(fx, fy, col, fishA, 0, {alpha:0.82, look: biteLook, len: biteSpec.len, big: biteSpec.big});
     pxDrawImgHook(hx, hy, fishA);
+    s.lastFish = { x: fx, y: fy, a: fishA };   // 记末帧锚点：起鱼分镜从这里平滑接力
     // 巨物：水下更大剪影 + 泄力器光点
     if(!small && !mid){
       pxDrawImgFish(hx - 16, Math.min(304, fy + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
@@ -3938,51 +3995,83 @@ function pxDrawSceneImg(){
         const ph = (PX.frame + i*3) % 14;
         if(ph < 7) pxPix(PX.L.rodHandX - 8 - i*5, PX.L.rodHandY + 2 + (i%2), '#ffd27a');
       }
-      if(T === 2) pxShake();
+      if(pxOnce('biteShake', T, 2)) pxShake();
     }
   }
 
   /* ================= 4. 上鱼（收线：线缩短，鱼沿弧线飞向竿梢下悬挂） ================= */
   else if(s.state==='reel'){
-    const T = s.t, big = s.fishSize==='big';
+    const T = s.t, big = s.fishSize==='big', mid = s.fishSize==='mid';
     const dur = big ? 56 : 34;
-    const k = Math.min(1, T/dur);
-    const ease = k*k*(3-2*k);                    // smoothstep 缓动：无匀速生硬感
     const col = pxRarityColor(s.fishRarity);
     const reelLook = pxFishLook(s.fishName||'', s.fishRarity);
     const spec = fishDrawSpec(s.fishSize, reelLook);
     /* 参考图：收线 = 线长单调缩短，鱼被拉离水沿「竿梢为圆心的弧」荡向梢下，
        最后嘴咬钩吊在线端。全程线端=钩=鱼嘴，三点重合不跳变 */
+    /* 起点 = 水面浮漂位（保持不变）；咬钩结束时鱼已下沉十几像素，
+       但两端都有贴边夹取，实际位移差只有几像素 → 由出水水花掩盖，无需改原点。 */
     const dx0 = bobX - rod.ex, dy0 = sy - 8 - rod.ey;
     const a0 = Math.atan2(dy0, dx0);                       // 竿梢→出水点的方向
     const a1 = (Math.PI/2) - (big ? 0.42 : 0);             // 巨物略斜悬挂免得鱼尾出画
-    const aa = a0 + (a1 - a0)*ease + Math.sin(T*0.16)*0.012;  // 极缓摆动（去掉高频抖动）
     const L0 = Math.hypot(dx0, dy0);
     const L1 = big ? 18 : spec.len*0.5 + 16;               // 收完后的短线（鱼吊梢下）
-    const LL = Math.max(L1, L0 + (L1 - L0)*ease);          // 线长缩短
-    const mx = rod.ex + Math.cos(aa)*LL;                   // 鱼嘴 = 线端
-    const my = rod.ey + Math.sin(aa)*LL;
-    /* 鱼体始终「头朝上」小幅摆动：角度锁在 75~89°，
-       避免 cos 变号触发镜像分支 → 鱼身瞬间翻转（不流畅的元凶） */
-    const hangA = 82 + Math.sin(T*0.18)*7;
-    const ma = hangA * Math.PI / 180;
     const lim = PX.H - 4 - spec.len*0.5;
-    let fy = my + Math.sin(ma)*spec.nose*0.95;
-    let fx = mx + Math.cos(ma)*spec.nose*0.95;
-    if(fy > lim){
-      const off = Math.max(4, (lim - my) / Math.max(0.2, Math.sin(ma)));
-      fy = my + Math.sin(ma)*off; fx = mx + Math.cos(ma)*off;
+    /* 跨分镜桥接：本分镜前 8 逻辑帧从「咬钩末帧的鱼体中心/角度」缓动进入弧线。
+       咬钩结束时鱼已沉到画面下沿并被夹取（y≈302），若直接切到收线轨迹
+       会「跳」5~16px；桥接后跳变归零，且水花正好在这几帧炸开，观感连贯。 */
+    const src0 = s.lastFish, BR = 8;
+    /* 位置解析式：给定逻辑时刻 → 鱼嘴 / 鱼体中心。
+       当前帧与残影都从同一条曲线取样 → 残影绝不偏离真实轨迹。 */
+    const posAt = (tt)=>{
+      const kk = Math.min(1, Math.max(0, tt)/dur);
+      const ee = kk*kk*(3-2*kk);                           // smoothstep 缓动：无匀速生硬感
+      const aa = a0 + (a1 - a0)*ee + Math.sin(tt*0.16)*0.012;  // 极缓摆动（去掉高频抖动）
+      const LL = Math.max(L1, L0 + (L1 - L0)*ee);          // 线长缩短
+      const ex_ = rod.ex + Math.cos(aa)*LL;                // 鱼嘴 = 线端
+      const ey_ = rod.ey + Math.sin(aa)*LL;
+      /* 鱼体始终「头朝上」小幅摆动：角度锁在 75~89°，
+         避免 cos 变号触发镜像分支 → 鱼身瞬间翻转（不流畅的元凶） */
+      let ha = 82 + Math.sin(tt*0.18)*7;
+      const mm = ha * Math.PI / 180;
+      let x = ex_ + Math.cos(mm)*spec.nose*0.95;           // 嘴→尾：中心 = 钩 + nose 方向
+      let y = ey_ + Math.sin(mm)*spec.nose*0.95;
+      if(y > lim){
+        const off = Math.max(4, (lim - ey_) / Math.max(0.2, Math.sin(mm)));
+        y = ey_ + Math.sin(mm)*off; x = ex_ + Math.cos(mm)*off;
+      }
+      if(src0 && Math.hypot(src0.x - x, src0.y - y) < 48){
+        // 距离过远说明锚点过期（异常流程），宁可不桥接也不要拉出一条怪滑行
+        const kb = Math.min(1, Math.max(0, tt)/BR), eb = kb*kb*(3-2*kb);
+        x = src0.x + (x - src0.x)*eb;
+        y = src0.y + (y - src0.y)*eb;
+        ha = src0.a + (ha - src0.a)*eb;
+      }
+      const m2 = ha * Math.PI / 180;
+      const mx = x - Math.cos(m2)*spec.nose*0.95;          // 反推真实嘴位（钩锚点）
+      const my = y - Math.sin(m2)*spec.nose*0.95;
+      return { x, y, a: ha, mx, my };
+    };
+    const cur = posAt(T);
+    const fx = cur.x, fy = cur.y;
+    s.lastFish = { x: fx, y: fy, a: cur.a };   // 记末帧锚点，供「钓获展示」分镜无缝接续
+    /* 残影（运动模糊）：沿同一条弧回取前 1.5 / 3 / 4.5 逻辑帧的鱼体位置，越早越淡。
+       提帧后相邻两帧仍相隔数像素，残影把间隙填上 → 高速段的「跳格感」基本消失。
+       位移不足 2.5px 时不画（收线末段已几乎静止，避免糊成一团）。 */
+    const gStep  = big ? [2, 4, 6] : [1.5, 3, 4.5];
+    const gAlpha = big ? [0.20, 0.12, 0.06] : [0.18, 0.11, 0.05];
+    for(let i=0;i<gStep.length;i++){
+      const g = posAt(T - gStep[i]);
+      if(Math.hypot(g.x - fx, g.y - fy) < 2.5) continue;
+      pxDrawImgFish(g.x, g.y, col, g.a, 0, {big:spec.big, look:reelLook, len:spec.len, alpha:gAlpha[i]});
     }
-    const mouthX2 = fx - Math.cos(ma)*spec.nose*0.95;      // 反推真实嘴位（=线端）
-    const mouthY2 = fy - Math.sin(ma)*spec.nose*0.95;
     // 线：竿梢 → 鱼嘴（绷紧）
-    pxDrawImgLine(rod.ex, rod.ey, mouthX2, mouthY2, 1, big?2:1);
-    pxDrawImgFish(fx, fy, col, hangA, 0, {big:spec.big, look:reelLook, len:spec.len});
-    pxDrawImgHook(mouthX2, mouthY2, hangA);
+    pxDrawImgLine(rod.ex, rod.ey, cur.mx, cur.my, 1, big?2:1);
+    pxDrawImgFish(fx, fy, col, cur.a, 0, {big:spec.big, look:reelLook, len:spec.len});
+    pxDrawImgHook(cur.mx, cur.my, cur.a);
     // 出水阶段水花（前 30% 还贴水时）
-    if(ease < 0.3){
-      if(T % 3 === 0) pxEmitSplash(mx, sy + 2, big?14:7);
-      pxDrawImgRings(mx, sy + 4, 120, 3, 0.32, 1.3);
+    if(Math.min(1, T/dur) < 0.3){
+      if(pxGate('reelSplash', T, 3)) pxEmitSplash(cur.mx, sy + 2, big?14:7);
+      pxDrawImgRings(cur.mx, sy + 4, 120, 3, 0.32, 1.3);
     }
     if(T > dur){ if(big) pxShake(); pxSetScene('caught', {rarity:s.fishRarity, size:s.fishSize}); }
   }
@@ -4005,7 +4094,7 @@ function pxDrawSceneImg(){
         // 逃逸的鱼（向右下潜，头朝下游动方向）
         const k2 = Math.min(1, (T-snapT)/30);
         pxDrawImgFish(bx + k2*130, Math.min(304, sy + 26 + k2*30), col, 258 + k2*8, 0, {alpha:0.85, look, len:spec.len});
-        if(T===snapT){ pxEmitSplash(bx, sy+2, 10); pxShake(); }
+        if(pxOnce('snap', T, snapT)){ pxEmitSplash(bx, sy+2, 10); pxShake(); }
       }
     } else {
       // 脱钩：鱼跃出水面做抛物线（参考图5），随后空钩荡回、浮漂弹起
@@ -4025,8 +4114,8 @@ function pxDrawSceneImg(){
           pxPix(Math.round(jx - 6 + Math.cos(i*0.5)*sr), Math.round(jy + 10 + Math.sin(i*0.5)*sr*0.4), '#eaf6ff');
         }
         PX.ctx.globalAlpha = 1;
-        if(T % 4 === 0) pxEmitSplash(jx, sy + 2, 6);
-        if(T === 2) pxShake();
+        if(pxGate('lostSplash', T, 4)) pxEmitSplash(jx, sy + 2, 6);
+        if(pxOnce('lostShake', T, 2)) pxShake();
       } else {
         // 鱼没入水中，空钩在空中荡回（J 形弧）
         const backT = T - jumpT;
@@ -4068,12 +4157,18 @@ function pxDrawSceneImg(){
       const rise = Math.min(1, T/16);
       const cx = bobX + 100;
       // 头朝上斜冲出水面；根据倾角抬高，保证整条鱼都在画面内
-      const ang = 16 + rise*70;
-      const need = Math.abs(Math.sin(ang*Math.PI/180)) * spec.len * 0.58;
-      const cy = Math.min(sy - 4 - rise*40, PX.H - 4 - need);
-      fx = cx; fy = cy;
-      // 水幕：鱼身与水面交界处的白色浪花带（集中在鱼体两侧）
-      PX.ctx.globalAlpha = 0.66 * vAlpha;
+      const angT = 16 + rise*70;
+      const need = Math.abs(Math.sin(angT*Math.PI/180)) * spec.len * 0.58;
+      const cyT = Math.min(sy - 4 - rise*40, PX.H - 4 - need);
+      /* 与收线终点衔接：前 12 帧从「收线末帧的鱼体位置/角度」缓动到本分镜
+         的出水位 → 巨物不再从竿梢下瞬移到水面（原来一步跳 82px）。 */
+      const src = s.lastFish;
+      const k0 = Math.min(1, T/12), e0 = k0*k0*(3-2*k0);
+      const ang = src ? (src.a + (angT - src.a)*e0) : angT;
+      fx = src ? (src.x + (cx - src.x)*e0) : cx;
+      fy = src ? (src.y + (cyT - src.y)*e0) : cyT;
+      // 水幕：鱼身与水面交界处的白色浪花带（集中在鱼体两侧）——随衔接缓动淡入
+      PX.ctx.globalAlpha = 0.66 * vAlpha * e0;
       for(let i=0;i<26;i++){
         const kx = i/25;
         const wx = cx - 78 + kx*150;
@@ -4081,16 +4176,19 @@ function pxDrawSceneImg(){
         pxRect(Math.round(wx), Math.round(wy), 2, 4 + (i%4)*4, '#eaf6ff');
       }
       PX.ctx.globalAlpha = 1;
-      pxDrawImgFish(cx, cy - vUp, col, ang, vScale, {big:true, pearl: vT < 8, look, len: spec.len, alpha: vAlpha});
-      // 大量飞溅
-      if(T % 2 === 0 && T < HOLD+4) pxEmitSplash(cx - 60 + Math.random()*120, sy + 2, 20);
-      pxDrawImgRings(cx, sy + 8, 150, 4, 0.36*vAlpha + 0.06, 1.7);
-      if(T === 2) pxShake();
+      pxDrawImgFish(fx, fy - vUp, col, ang, vScale, {big:true, pearl: vT < 8, look, len: spec.len, alpha: vAlpha});
+      // 大量飞溅（衔接期先不出水花，等鱼到水面再炸开）
+      if(e0 > 0.35 && T < HOLD+4 && pxGate('bigSplash', T, 2)) pxEmitSplash(cx - 60 + Math.random()*120, sy + 2, 20);
+      pxDrawImgRings(cx, sy + 8, 150, 4, (0.36*vAlpha + 0.06)*e0, 1.7);
+      if(pxOnce('bigShake', T, 2)) pxShake();
     } else {
-      // 普通钓获：吊在竿梢下展示（与收线结束姿势衔接），轻微挣扎摆动
+      // 普通钓获：吊在竿梢下展示，轻微挣扎摆动
       const hangA = 82 + Math.sin(T*0.18)*7;
       const ma = hangA * Math.PI / 180;
-      const hx2 = rod.ex + Math.sin(T*0.35)*2, hy2 = rod.ey + 8;
+      /* 悬挂距离必须与收线终点完全一致（L1 = len*0.5 + 16）：
+         原实现固定写 8px → 收线把鱼拉到梢下 33px 处后，展示第一帧
+         鱼会「蹿」上来 25px（mid 更高达 37px）。对齐后两段无缝。 */
+      const hx2 = rod.ex + Math.sin(T*0.35)*2, hy2 = rod.ey + (spec.len*0.5 + 16);
       let fy2 = hy2 + Math.sin(ma)*spec.nose*0.95;
       let fx2 = hx2 + Math.cos(ma)*spec.nose*0.95;
       const lim2 = PX.H - 4 - spec.len*0.5;
@@ -4173,7 +4271,7 @@ function pxDrawSceneImg(){
     }
     pxDrawImgBobber(bobX, sy - 6 + Math.sin(PX.frame*0.3));
     pxDrawImgLine(rod.ex, rod.ey, bobX, sy - 8, 4, 1);
-    if(PX.frame % 4 === 0) pxEmitSplash(bobX, sy + 4, 4);
+    if(pxGate('nestSplash', PX.frame, 4)) pxEmitSplash(bobX, sy + 4, 4);
   }
   // 切场淡入淡出遮罩
   if(f < 1){
@@ -4189,7 +4287,7 @@ function pxDrawUnderFish(){
   const s = PX.scene;
   const wl = PX.L.waterY, H = PX.H;
   const band = H - wl;                          // 水下纵深
-  if(PX.bg && t3(PX.frame)) return;
+  if(PX.bg && t3(Math.floor(PX.frame))) return;
   if(s.state==='waiting' || s.state==='cast'){
     for(let i=0;i<7;i++){
       const period = 240 + i*53;
@@ -4236,7 +4334,7 @@ function pxPopupCatch(r, fish){
 function pxPopupDraw(){
   const p = PX.popup;
   if(!p.r || p.life <= 0) return;
-  p.t++; p.life--;
+  p.t += (PX.dtL || 1); p.life -= (PX.dtL || 1);
   const a = Math.min(1, p.life / 10);            // 尾段淡出
   if(p.life <= 0){ p.r = null; p.fish = null; return; }
   const cx = PX.W/2, cy = 78;
@@ -4358,14 +4456,14 @@ function pxDrawScene(){
         PX.ctx.globalAlpha = 1;
       }
     }
-    // 轻微咬口：浮漂小幅轻抖
-    if(Math.random() < 0.02 && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
+    // 轻微咬口：浮漂小幅轻抖（概率/节奏按逻辑帧折算）
+    if(Math.random() < 0.02 * (PX.dtL || 1) && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
     if(s.phase==='nibble'){
-      s.nibbleT = (s.nibbleT||0) + 1;
+      s.nibbleT = (s.nibbleT||0) + (PX.dtL || 1);
       const n = s.nibbleT;
       const dy = (n%6 < 3) ? 4 : -3;
       pxDrawBobber(bobX, wl, dy, PAL.bobber);
-      if(n % 5 === 0) pxEmit(bobX, wl+2, 3, Math.PI*0.7, '#cfe8f5');
+      if(pxGate('nibbleEmit', n, 5)) pxEmit(bobX, wl+2, 3, Math.PI*0.7, '#cfe8f5');
       pxDrawImgFish(bobX-40+n*4, wl+34, '#5b7280', 0, 0.62, {alpha:0.45, look:pxFishLook('小鱼','common')});
       if(n > 20) s.phase = '';
     }
@@ -4513,7 +4611,7 @@ function pxDrawScene(){
     pxDrawBobber(bobX, wl, Math.sin(PX.frame*0.3), PAL.bobber);
     pxDrawLine(PX._rodEx, PX._rodEy, bobX+2, wl-3, 4);
     // 窝料褐色沉淀粒子
-    if(PX.frame % 4 === 0) pxEmit(nestX, wl+8, 3, Math.PI*0.5, '#a8825a');
+    if(pxGate('nestEmit', PX.frame, 4)) pxEmit(nestX, wl+8, 3, Math.PI*0.5, '#a8825a');
     for(let i=0;i<9;i++){
       if((PX.frame + i*4) % 18 < 9) pxPix(nestX - 140 + i*36, wl+30 + (i%3)*16, '#e8c88a');
     }
