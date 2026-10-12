@@ -3335,6 +3335,20 @@ function pxDrawImgHook(x, y, angDeg){
   c.restore();
 }
 
+/** 钩眼（主线的接点）：锚点沿钩柄方向 7px，与 pxDrawImgHook 的钩柄严格同源。
+ *  锚点=钩弯=鱼嘴；线必须接到钩眼，否则视觉上「钩浮在线外」 */
+function pxImgHookEye(x, y, angDeg){
+  const th = (angDeg - 90) * Math.PI / 180;
+  return { x: x + 7*Math.sin(th), y: y - 7*Math.cos(th) };
+}
+
+/** 线 + 钩一体绘制：线端永远精确落在钩眼上，杜绝「线够不到钩/钩脱离线」 */
+function pxDrawImgHookLine(x1, y1, hx, hy, angDeg, sag, thick){
+  const e = pxImgHookEye(hx, hy, angDeg);
+  pxDrawImgLine(x1, y1, e.x, e.y, sag, thick);
+  pxDrawImgHook(hx, hy, angDeg);
+}
+
 /** 浮漂（图像模式）：橙球 + 黑顶 + 白腰，带水中倒影（参考图的圆浮球） */
 function pxDrawImgBobber(x, y){
   const c = PX.ctx;
@@ -3890,11 +3904,11 @@ function pxDrawSceneImg(){
         PX.ctx.globalAlpha = 1;
       }
       pxDrawImgLine(rod.ex, rod.ey, px0, py0, 0, 1);
-      // 饵（亮黄小球 + 小钩）
+      // 饵（亮黄小球）+ 真鱼钩：钩眼挂在球下、钩尖朝下，随飞行轻摆
+      // （原来是 2×4 灰条——看不出是钩，入水后钩还整根消失）
       pxRect(Math.round(px0)-3, Math.round(py0)-3, 7, 7, '#f2c53a');
       pxRect(Math.round(px0)-2, Math.round(py0)-2, 4, 4, '#ffe89a');
-      pxRect(Math.round(px0), Math.round(py0)+4, 2, 4, '#b9c4cc');
-      pxPix(Math.round(px0)-1, Math.round(py0)+7, '#e8f2f8');
+      pxDrawImgHook(px0, py0 + 7, 90 + Math.sin(T*0.55)*6);
       // 落水
       if(k >= 1){
         const rr = (T-38)*2.8;
@@ -3918,8 +3932,22 @@ function pxDrawSceneImg(){
     const drift = Math.sin(PX.frame*0.085) * 4.5;         // 浮漂明显左右漂移
     const vfloat = sy - 7 + Math.sin(PX.frame*0.105) * 3.2; // 且上下浮动
     const bY = vfloat + drift*0.25;
-    // 线：竿梢 → 浮漂，垂度随竿身起伏变化（线在水面轻轻拖拽）
-    pxDrawImgLine(rod.ex, rod.ey, bobX + drift*0.6, bY - 2, 3 + Math.sin(PX.frame*0.07)*3, 1);
+    /* 咬口预兆（概率按逻辑帧折算，提帧后触发频率不变）：
+       浮漂轻抖时，线、钩、浮漂必须同源联动——原来线不随抖，看起来各动各的 */
+    if(Math.random() < 0.014 * (PX.dtL || 1) && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
+    let dy = 0;
+    if(s.phase==='nibble'){
+      s.nibbleT = (s.nibbleT||0) + (PX.dtL || 1);
+      dy = (s.nibbleT%6 < 3) ? 7 : -6;                    // 抖动幅度加大
+      if(pxGate('nibbleSplash', s.nibbleT, 4)) pxEmitSplash(bobX + drift, sy + 2, 4);
+      if(s.nibbleT > 22) s.phase = '';
+    }
+    /* 鱼钩常驻：抛竿入水后钩就一直挂在浮漂正下方水里（线端=钩眼=浮漂中心，
+       钩弯垂在浮漂下沿）→ 咬钩瞬间钩已就位，不再凭空弹出；也补上了「实际抛钩」 */
+    const hx = bobX + drift, hy = bY + dy + 7, hAng = 90;
+    const wEye = pxImgHookEye(hx, hy, hAng);
+    // 线：竿梢 → 钩眼，垂度随竿身起伏变化（线在水面轻轻拖拽）
+    pxDrawImgLine(rod.ex, rod.ey, wEye.x, wEye.y, 3 + Math.sin(PX.frame*0.07)*3, 1);
     // 浮漂下方水里的鱼影巡游（朝向跟随游动方向；不同鱼种各有体形与大小）
     const swim = ['白条','鲫鱼','鲤鱼'];
     for(let i=0;i<3;i++){
@@ -3933,7 +3961,8 @@ function pxDrawSceneImg(){
       const spec = fishDrawSpec(i === 2 ? 'mid' : 'small', look);
       pxDrawImgFish(fx, fy, '#5b7d92', kk < per/2 ? 180 : 0, 0, {alpha:0.30, look, len:spec.len});
     }
-    pxDrawImgBobber(bobX + drift, bY);
+    pxDrawImgHook(hx, hy, hAng);                          // 钩（画在鱼影之后、浮漂之前：钩柄没入浮漂，只露钩弯）
+    pxDrawImgBobber(bobX + drift, bY + dy);               // 浮漂（含轻抖偏移 dy）
     // 同心涟漪环（持续扩散，跟随浮漂位置；速度调快保证任何时刻都在变）
     pxDrawImgRings(bobX + drift, sy + 4, 150, 5, 0.44, 1.85);
     // 水面环境小波纹（不依赖场景动作，保证画面始终在动）
@@ -3946,16 +3975,6 @@ function pxDrawSceneImg(){
         pxRect(x, Math.round(y), w, 1, '#e4f3fd');
         PX.ctx.globalAlpha = 1;
       }
-    }
-    // 轻微咬口预兆（概率按逻辑帧折算，提帧后触发频率不变）
-    if(Math.random() < 0.014 * (PX.dtL || 1) && !s.phase){ s.phase = 'nibble'; s.nibbleT = 0; }
-    if(s.phase==='nibble'){
-      s.nibbleT = (s.nibbleT||0) + (PX.dtL || 1);
-      const n = s.nibbleT;
-      const dy = (n%6 < 3) ? 7 : -6;                     // 抖动幅度加大
-      pxDrawImgBobber(bobX + drift, bY + dy);
-      if(pxGate('nibbleSplash', n, 4)) pxEmitSplash(bobX + drift, sy + 2, 4);
-      if(n > 22) s.phase = '';
     }
   }
 
@@ -3983,8 +4002,9 @@ function pxDrawSceneImg(){
     const ma = fishA * Math.PI / 180;
     const fx = hx + Math.cos(ma)*biteSpec.nose*0.95;         // 嘴→尾：中心 = 钩 + nose 方向
     const fy = Math.min(302, hy + Math.sin(ma)*biteSpec.nose*0.95);
-    // 主线：竿梢 → 钩柄顶（咬钩时绷紧，几乎无垂度）
-    pxDrawImgLine(rod.ex, rod.ey, hx + 7*Math.sin(ma - Math.PI/2), hy - 7*Math.cos(ma - Math.PI/2), small?6:1, small?1:2);
+    // 主线：竿梢 → 钩眼（咬钩时绷紧，几乎无垂度）
+    const bEye = pxImgHookEye(hx, hy, fishA);
+    pxDrawImgLine(rod.ex, rod.ey, bEye.x, bEye.y, small?6:1, small?1:2);
     pxDrawImgFish(fx, fy, col, fishA, 0, {alpha:0.82, look: biteLook, len: biteSpec.len, big: biteSpec.big});
     pxDrawImgHook(hx, hy, fishA);
     s.lastFish = { x: fx, y: fy, a: fishA };   // 记末帧锚点：起鱼分镜从这里平滑接力
@@ -4064,8 +4084,9 @@ function pxDrawSceneImg(){
       if(Math.hypot(g.x - fx, g.y - fy) < 2.5) continue;
       pxDrawImgFish(g.x, g.y, col, g.a, 0, {big:spec.big, look:reelLook, len:spec.len, alpha:gAlpha[i]});
     }
-    // 线：竿梢 → 鱼嘴（绷紧）
-    pxDrawImgLine(rod.ex, rod.ey, cur.mx, cur.my, 1, big?2:1);
+    // 线：竿梢 → 钩眼（绷紧）
+    const rEye = pxImgHookEye(cur.mx, cur.my, cur.a);
+    pxDrawImgLine(rod.ex, rod.ey, rEye.x, rEye.y, 1, big?2:1);
     pxDrawImgFish(fx, fy, col, cur.a, 0, {big:spec.big, look:reelLook, len:spec.len});
     pxDrawImgHook(cur.mx, cur.my, cur.a);
     // 出水阶段水花（前 30% 还贴水时）
@@ -4176,7 +4197,16 @@ function pxDrawSceneImg(){
         pxRect(Math.round(wx), Math.round(wy), 2, 4 + (i%4)*4, '#eaf6ff');
       }
       PX.ctx.globalAlpha = 1;
+      /* 线与钩：巨物出水全程也始终连着鱼嘴——原来整段展示线+钩全部消失，
+         鱼像凭空浮在水上。钩柄沿线方向（嘴→竿梢），鱼溶解时钩先撤掉。 */
+      const maB = ang * Math.PI / 180;
+      const mxB = fx - Math.cos(maB)*spec.nose*0.95;          // 嘴位（与鱼体同源）
+      const myB = (fy - vUp) - Math.sin(maB)*spec.nose*0.95;
+      const hookA = 90 + Math.atan2(rod.ex - mxB, -(rod.ey - myB)) * 180/Math.PI;
+      const bigEye = pxImgHookEye(mxB, myB, hookA);
+      pxDrawImgLine(rod.ex, rod.ey, bigEye.x, bigEye.y, 1, 2);
       pxDrawImgFish(fx, fy - vUp, col, ang, vScale, {big:true, pearl: vT < 8, look, len: spec.len, alpha: vAlpha});
+      if(vanish < 0.85) pxDrawImgHook(mxB, myB, hookA);
       // 大量飞溅（衔接期先不出水花，等鱼到水面再炸开）
       if(e0 > 0.35 && T < HOLD+4 && pxGate('bigSplash', T, 2)) pxEmitSplash(cx - 60 + Math.random()*120, sy + 2, 20);
       pxDrawImgRings(cx, sy + 8, 150, 4, (0.36*vAlpha + 0.06)*e0, 1.7);
@@ -4199,7 +4229,9 @@ function pxDrawSceneImg(){
       const mx2 = fx2 - Math.cos(ma)*spec.nose*0.95;       // 嘴位 = 线端
       const my2 = fy2 - Math.sin(ma)*spec.nose*0.95;
       fx = fx2; fy = fy2;
-      pxDrawImgLine(rod.ex, rod.ey, mx2, my2 - vUp*0.6, 1, 1);
+      // 线 → 钩眼（钩弯=鱼嘴，与收线终点严格同源）
+      const nEye = pxImgHookEye(mx2, my2 - vUp*0.6, hangA);
+      pxDrawImgLine(rod.ex, rod.ey, nEye.x, nEye.y, 1, 1);
       pxDrawImgFish(fx2, fy2 - vUp, col, hangA, vScale, {look, len: spec.len, alpha: vAlpha});
       if(vanish < 0.85) pxDrawImgHook(mx2, my2 - vUp*0.6, hangA);
       pxDrawImgRings(mx2, sy + 4, 100, 3, 0.24*vAlpha + 0.05, 1.0);
@@ -4226,8 +4258,7 @@ function pxDrawSceneImg(){
     if(vT > FADE){
       const sw = Math.sin((vT-FADE)*0.28);
       const ex2 = rod.ex + sw*6, ey2 = rod.ey + 14 + Math.cos((vT-FADE)*0.28)*3;
-      pxDrawImgLine(rod.ex, rod.ey, ex2, ey2, 3, 1);
-      pxDrawImgHook(ex2, ey2, 82 + sw*4);
+      pxDrawImgHookLine(rod.ex, rod.ey, ex2, ey2, 82 + sw*4, 3, 1);
     }
     if(T > PX_CAUGHT_FRAMES) pxToIdle();
   }
@@ -4250,7 +4281,9 @@ function pxDrawSceneImg(){
       pxDrawImgFish(fx, fy, PAL.rare[r], 180, 0, {alpha:0.85, look, len:spec.len});
     }
     const dy = Math.sin(PX.frame*1.0)*3;
-    pxDrawImgLine(rod.ex, rod.ey, bobX, sy-6+dy, 4, 1);
+    const tEye = pxImgHookEye(bobX, sy-6+dy+7, 90);
+    pxDrawImgLine(rod.ex, rod.ey, tEye.x, tEye.y, 4, 1);
+    pxDrawImgHook(bobX, sy-6+dy+7, 90);
     pxDrawImgBobber(bobX, sy - 6 + dy);
     pxDrawImgRings(bobX, sy + 4, 140, 4, 0.30, 1.6);
   } else if(s.state==='nest'){
@@ -4269,8 +4302,11 @@ function pxDrawSceneImg(){
       pxDrawImgFish(nx, Math.min(308, sy + 12 + Math.sin(ang)*rr*0.24), PAL.rare[r],
                     Math.sin(ang) > 0 ? 0 : 180, 0, {alpha:0.85, look, len:spec.len});
     }
-    pxDrawImgBobber(bobX, sy - 6 + Math.sin(PX.frame*0.3));
-    pxDrawImgLine(rod.ex, rod.ey, bobX, sy - 8, 4, 1);
+    const nY = sy - 6 + Math.sin(PX.frame*0.3);
+    const nEye2 = pxImgHookEye(bobX, nY + 7, 90);
+    pxDrawImgLine(rod.ex, rod.ey, nEye2.x, nEye2.y, 4, 1);
+    pxDrawImgHook(bobX, nY + 7, 90);
+    pxDrawImgBobber(bobX, nY);
     if(pxGate('nestSplash', PX.frame, 4)) pxEmitSplash(bobX, sy + 4, 4);
   }
   // 切场淡入淡出遮罩
