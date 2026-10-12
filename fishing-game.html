@@ -2151,22 +2151,24 @@ function pxHashStr(s){
   return h >>> 0;
 }
 /** hex 颜色在 HSL 空间旋转色相（返回 hex，保证 pxHex/pxMix 可继续处理） */
-function pxHueRot(hex, deg){
+function pxHueRot(hex, deg, sMul, lMul){
   const p = pxHex(hex);
   let r = p[0]/255, g = p[1]/255, b = p[2]/255;
   const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
-  let h = 0; const l = (mx+mn)/2;
+  let h = 0; const l0 = (mx+mn)/2;
   let s = 0;
   if(mx !== mn){
     const d = mx-mn;
-    s = l > 0.5 ? d/(2-mx-mn) : d/(mx+mn);
+    s = l0 > 0.5 ? d/(2-mx-mn) : d/(mx+mn);
     if(mx === r) h = (g-b)/d + (g < b ? 6 : 0);
     else if(mx === g) h = (b-r)/d + 2;
     else h = (r-g)/d + 4;
     h *= 60;
   }
   h = (h + deg + 360) % 360;
-  const c = (1 - Math.abs(2*l - 1)) * s;
+  const s2 = Math.min(1, s * (sMul || 1));                       // 饱和度缩放（低饱和底色拉出可见色调）
+  const l = Math.min(0.9, Math.max(0.1, l0 * (lMul || 1)));      // 明度抖动
+  const c = (1 - Math.abs(2*l - 1)) * s2;
   const x = c * (1 - Math.abs((h/60) % 2 - 1));
   const m = l - c/2;
   let rp, gp, bp;
@@ -2189,12 +2191,15 @@ function pxFishLook(name, rarity){
   else if(/鲀|虾虎|麦穗|鲳|鳌/.test(name)) shape = 'chub';
   else if(/鲟|鳢|鳐|鲶|鲇|鳊|翘嘴|黄颡|军鱼/.test(name)) shape = 'long';
   else if(/鲲|鯤|鲸|豚|龙|影|灵|蜃|哲罗/.test(name)) shape = 'whale';
-  /* 配色：品质基色 + ±26° 色相偏移 —— 品质仍一眼可辨，但每条鱼色调不同 */
+  /* 配色：品质基色 + 大幅色相偏移（±80°）+ 饱和/明度抖动 —— 同品质的不同鱼一眼可辨 */
   const baseCol = rarity === 'mystic' ? '#c857e8' : (PAL.rare[rarity] || '#9fb6c4');
-  const mid = pxHueRot(baseCol, (seed % 53) - 26);
-  /* 花纹：0无 1斑点 2竖纹 3横带，花纹色取偏亮的对比色 */
+  const sMul = (rarity === 'common' ? 2.1 : 1) * (0.82 + (seed % 5) * 0.14);   // 常见鱼底色太灰，先拉饱和度让色调差异可见
+  const lMul = 0.82 + ((seed >> 5) % 6) * 0.08;                                // 明度 0.82~1.22：色相撞车时靠明暗差区分
+  const hue = (seed % 161) - 80;
+  const mid = pxHueRot(baseCol, hue, sMul, lMul);
+  /* 花纹：0无 1斑点 2竖纹 3横带，花纹色取鱼身色的对比色 */
   const patType = seed % 4;
-  const patCol = pxHueRot(baseCol, (seed % 53) - 26 + (seed % 2 ? 150 : -150));
+  const patCol = pxHueRot(baseCol, hue + (seed % 2 ? 150 : -150), sMul, lMul);
   const look = {
     mid, patType, patCol, shape, seed,
     whisker: /鲶|鲇|鲤|龙|鲲|鯤/.test(name),
@@ -3339,12 +3344,12 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
   /* 放大到能看清「是一条鱼」的尺寸：普通 46→64，巨物 96→110 */
   let L = Math.round((opt.big ? 110 : 64) * (scale || 1));
   let H = Math.max(8, Math.round(L * 0.40));
-  /* 体形档位：鳗形细长 / 短圆憨厚 / 修长挺拔 / 巨物宽厚 */
+  /* 体形档位：夸张化 —— 鳗形细长 / 短圆憨厚 / 修长挺拔 / 巨物宽厚，一眼区分 */
   if(look){
-    if(look.shape === 'eel'){ L = Math.round(L*1.18); H = Math.max(7, Math.round(H*0.60)); }
-    else if(look.shape === 'chub'){ L = Math.round(L*0.88); H = Math.round(H*1.32); }
-    else if(look.shape === 'long'){ L = Math.round(L*1.12); H = Math.max(8, Math.round(H*0.80)); }
-    else if(look.shape === 'whale'){ H = Math.round(H*1.42); }
+    if(look.shape === 'eel'){ L = Math.round(L*1.30); H = Math.max(6, Math.round(H*0.48)); }
+    else if(look.shape === 'chub'){ L = Math.round(L*0.80); H = Math.round(H*1.55); }
+    else if(look.shape === 'long'){ L = Math.round(L*1.18); H = Math.max(8, Math.round(H*0.70)); }
+    else if(look.shape === 'whale'){ L = Math.round(L*1.05); H = Math.round(H*1.75); }
   }
   const midC = (look && look.mid) ? look.mid : col;
   const hi  = pxMix(midC, '#f2fbff', 0.62);  // 腹部亮（受水光）
@@ -3382,13 +3387,13 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
     pxRect(tail + i, yTop, 1, b1, lo);
     pxRect(tail + i, yTop + b1, 1, b2, midC);
     pxRect(tail + i, yTop + b1 + b2, 1, b3, hi);
-    // 鱼种花纹：竖纹 / 横带（沿体侧，跟厚度走）
-    if(look && look.patType === 2 && th > 6 && (i % 7 === 3)){
-      c.globalAlpha = 0.40;
-      pxRect(tail + i, yTop + 2, 1, Math.max(2, th - 5), look.patCol);
+    // 鱼种花纹：竖纹 / 横带（沿体侧，跟厚度走），高对比确保小尺寸下可见
+    if(look && look.patType === 2 && th > 5 && (i % 6 === 3)){
+      c.globalAlpha = 0.55;
+      pxRect(tail + i, yTop + 1, 1, Math.max(2, th - 3), look.patCol);
       c.globalAlpha = 1;
-    }else if(look && look.patType === 3 && th > 8 && (i % 9 === 4)){
-      c.globalAlpha = 0.48;
+    }else if(look && look.patType === 3 && th > 7 && (i % 8 === 4)){
+      c.globalAlpha = 0.62;
       pxRect(tail + i, yTop + 1, 1, th - 2, look.patCol);
       c.globalAlpha = 1;
     }
@@ -3401,19 +3406,20 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
   }
   /* 斑点花纹（循环外按种子布点，同名鱼点位恒定） */
   if(look && look.patType === 1){
-    c.globalAlpha = 0.52;
-    for(let i=0;i<6;i++){
+    c.globalAlpha = 0.72;
+    for(let i=0;i<8;i++){
       const sxp = tail + Math.round(cols * (0.18 + ((i*0.31 + (look.seed%13)/13 * 0.17) % 0.62)));
       const syp = -Math.round(H*0.22) + ((i*5 + (look.seed%7)) % Math.max(2, Math.round(H*0.5)));
       pxRect(sxp, syp, 2, 2, look.patCol);
     }
     c.globalAlpha = 1;
   }
-  /* ---------- 尾鳍：分叉新月形（鱼最标志性的部位）---------- */
+  /* ---------- 尾鳍：分叉新月形（叉深按鱼种变化：鲲/龙深叉，鳅/鲀浅叉圆尾）---------- */
+  const forkK = look ? (0.55 + (look.seed % 4) * 0.15) : 0.75;    // 0.55~1.00
   const tw = Math.max(4, Math.round(L * 0.20));
   for(let i=0;i<tw;i++){
     const k = i/tw;                                     // 0=尾柄侧 → 1=末端
-    const spread = Math.round(H * (0.34 + k*0.62));     // 越往外分叉越开
+    const spread = Math.round(H * (0.34 + k*0.62*forkK)); // 越往外分叉越开
     pxRect(tail - tw + i, -spread, 1, Math.round(H*0.26), fin);   // 上叶
     pxRect(tail - tw + i, Math.round(H*0.10), 1, Math.round(H*0.26) , fin); // 下叶
     pxRect(tail - tw + i, -Math.round(H*0.06), 1, Math.round(H*0.16), fin); // 中央连接
@@ -3424,11 +3430,12 @@ function pxDrawImgFish(cx, cy, col, dirDeg, scale, opt){
       c.globalAlpha = 1;
     }
   }
-  /* ---------- 背鳍：三角帆状 ---------- */
+  /* ---------- 背鳍：三角帆状（高矮按鱼种变化）---------- */
+  const finK = look ? (0.7 + ((look.seed >> 4) % 4) * 0.3) : 1;   // 0.7~1.6
   const d0 = Math.round(cols * 0.34), dl = Math.max(5, Math.round(cols * 0.30));
   for(let i=0;i<dl;i++){
     const k = i/dl;
-    const hh = Math.max(1, Math.round(H * 0.34 * Math.sin(k * Math.PI * 0.92)));
+    const hh = Math.max(1, Math.round(H * 0.34 * finK * Math.sin(k * Math.PI * 0.92)));
     const th = Math.max(3, Math.round(H * (k < 0.16 ? 0.5 : 0.85)));
     pxRect(tail + d0 + i, -Math.round(th/2) - hh, 1, hh + 1, fin);
   }
