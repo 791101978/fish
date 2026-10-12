@@ -349,20 +349,7 @@ header{
 }
 .retryBtn.on{display:block}
 .retryBtn:hover{background:rgba(31,127,212,.3);border-color:#5aa8f0}
-/* 云服务登录（手机验证码 / 微信） */
-.codeRow{display:flex;gap:8px;align-items:stretch}
-.codeRow input{flex:1;min-width:0}
-.codeBtn{flex-shrink:0;padding:0 13px;border-radius:9px;background:#173148;border:1px solid var(--line2);
-  color:var(--txt);font-size:12px;font-weight:700;white-space:nowrap;transition:.18s;font-family:inherit}
-.codeBtn:hover:not(:disabled){background:#1f425c}
-.codeBtn:disabled{opacity:.5;cursor:not-allowed}
-.wxBtn{width:100%;padding:12px;border-radius:11px;background:#1a3a2a;border:1px solid #2f6b4a;
-  color:#8fe6b4;font-size:14px;font-weight:700;transition:.18s;font-family:inherit}
-.wxBtn:hover{background:#21513a;transform:translateY(-1px)}
-.fieldErr{font-size:11px;color:var(--red);margin-top:5px;min-height:14px}
 </style>
-<!-- 云服务 SDK（CDN 形式：单文件 HTML，无构建步骤） -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 </head>
 <body>
 
@@ -376,23 +363,27 @@ header{
 
     <div class="authCard">
       <div class="warnBar" id="offlineWarn"></div>
+      <div class="authTabs">
+        <div class="authTab on" id="tabLogin" onclick="switchAuth('login')">登录</div>
+        <div class="authTab" id="tabReg" onclick="switchAuth('reg')">注册</div>
+      </div>
       <div class="authErr" id="authErr"></div>
       <div class="field">
-        <label>手机号</label>
-        <input id="authPhone" maxlength="11" placeholder="11 位手机号" autocomplete="tel" inputmode="numeric" oninput="onPhoneInput()">
-        <div class="fieldErr" id="phoneErr"></div>
+        <label>用户名</label>
+        <input id="authUser" maxlength="12" placeholder="2-12 位，中文/字母/数字/下划线" autocomplete="username">
       </div>
       <div class="field">
-        <label>验证码</label>
-        <div class="codeRow">
-          <input id="authCode" maxlength="6" placeholder="6 位验证码" autocomplete="one-time-code" inputmode="numeric">
-          <button type="button" class="codeBtn" id="btnSendCode" onclick="sendPhoneCode()">获取验证码</button>
-        </div>
+        <label>密码</label>
+        <input id="authPass" type="password" maxlength="64" placeholder="至少 6 位" autocomplete="current-password">
       </div>
-      <button class="authBtn" id="authSubmit" onclick="submitAuth()">登录并开始</button>
-      <div class="authDivider">或</div>
-      <button class="wxBtn" id="btnWxLogin" onclick="wechatLogin()">💬 微信登录</button>
-      <div class="authNote">首次登录自动创建账号 · 进度保存在云端<br>换设备用同一手机号或微信登录即可继续摸鱼</div>
+      <div class="field" id="pass2Wrap" style="display:none">
+        <label>确认密码</label>
+        <input id="authPass2" type="password" maxlength="64" placeholder="再次输入密码" autocomplete="new-password">
+      </div>
+      <button class="authBtn" id="authSubmit" onclick="submitAuth()">登 录</button>
+      <button class="retryBtn" id="authRetry" onclick="forceRetry()">🔄 重试连接</button>
+      <div id="localAccts"></div>
+      <div class="authNote">进度保存在服务端，换设备登录同一账号即可继续摸鱼</div>
     </div>
 
     <div class="authFoot">零操作挂机 · 关掉页面也会持续钓鱼 · 上线一键收菜</div>
@@ -618,18 +609,12 @@ const CHAT_POOL = [
 ];
 const TITLES = ['新手钓手','池塘常客','溪流猎手','湖泊行家','深水探员','幽谷名匠','海渊之主','钩圣'];
 
-/* ---------------- 存档层（云服务数据库） ---------------- */
-/* publicConfig 由云服务激活时返回，是前端唯一允许携带的公开配置 */
-const CLOUD_CFG = {
-  endpoint: 'https://moyu-fishing-63331.app.workbuddy.host',
-  oauthRelayBaseUrl: 'https://www.workbuddy.cn/v2/as/genie-baas/oauth',
-  publishableKey: 'wbpk_Tahpy01ZK2hZVk8qBo2ScY_Z6fa6DVsH3fOMGXH05gGdcgsTfRLRDVr',
-};
-let cloud = null;            // WorkBuddy 云服务客户端（Auth + Database 共用）
-let S = null;                // 当前存档对象
-let ME = null;               // 当前登录用户 {uid}
-const MAX_SAVE_BYTES = 512 * 1024;
-let pushing = false, pushQueued = false, pushFailed = false;
+/* ---------------- 存档层（服务端为主 + 本地缓存兜底） ---------------- */
+const SAVE_KEY = 'moyu_fishing_cache_v1';   // 本地缓存键（防断网丢档）
+let S = null;
+let CURRENT_USER = null;      // {uid, username}
+let SERVER_MODE = true;       // 后端不可用时降级为本地模式
+let saveFailCount = 0;
 
 function defaultEquip(){
   const o = {};
@@ -681,12 +666,27 @@ function hydrate(d){
   return s;
 }
 
-/* ---- 云端存档同步（云数据库 saves 表，RLS 保证仅本人可读写） ---- */
+/* ---- 本地缓存读写（断网兜底） ---- */
+function cacheWrite(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+}
+function cacheRead(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function cacheClear(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+/* ---- 服务端同步 ---- */
 let saveT = 0, saveTimer = null;
-/** 节流保存：本地立即改状态，300ms 后上传云端 */
+/** 同步写本地缓存 + 节流上传服务端 */
 function save(){
   if(!S) return;
   S.lastOnline = Date.now();
+  cacheWrite();
+  if(!SERVER_MODE) return;
   if(saveTimer) return;
   saveTimer = setTimeout(()=>{ saveTimer = null; pushSave(); }, 300);
 }
@@ -694,60 +694,46 @@ function saveSoon(){ const n=Date.now(); if(n-saveT>1500){ saveT=n; save(); } }
 /** 立即上传一次（页面隐藏/退出/登出时调用） */
 function flushSave(){
   if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; }
-  if(S){ S.lastOnline = Date.now(); pushSave(); }
+  S && (S.lastOnline = Date.now());
+  cacheWrite();
+  if(SERVER_MODE) pushSave();
 }
-/** 读取当前账号的存档行（RLS 只返回本人那一行） */
-async function cloudLoadRow(){
-  const { data, error } = await cloud.database
-    .from('saves').select('id, data, updated_at').limit(1).maybeSingle();
-  if(error) throw error;
-  return data || null;
-}
-/** 上传存档：有行则更新，无行则插入（含并发冲突兜底） */
-async function pushSave(){
-  if(!S || !ME || !cloud) return;
-  if(pushing){ pushQueued = true; return; }
-  pushing = true;
+function pushSave(){
+  if(!SERVER_MODE || !S || !CURRENT_USER) return;
+  const payload = JSON.stringify({save:S});
   try{
-    const str = JSON.stringify(S);
-    if(str.length > MAX_SAVE_BYTES){
-      if(!pushFailed){ pushFailed = true; toast('⚠️ 存档体积超出上限，本次未能同步到云端','bad'); }
-      return;
+    fetch('/api/save', {method:'PUT', headers:{'Content-Type':'application/json'}, body:payload, keepalive:true})
+      .then(r=>{ if(r.ok){ saveFailCount=0; } else if(r.status===401){ onSessionLost(); } else { saveFailCount++; } })
+      .catch(()=>{ saveFailCount++;
+        if(saveFailCount===3){ SERVER_MODE=false; toast('⚠️ 服务端连接中断，已切换本地存档模式','bad'); } });
+  }catch(e){ saveFailCount++; }
+}
+
+/* ---- 服务端 API 封装 ---- */
+async function api(path, opts){
+  // 冷启动容错：容器休眠后首个请求可能超时/瞬时失败，这里对网络层错误自动重试
+  const o = Object.assign({headers:{'Content-Type':'application/json'}}, opts||{});
+  let lastErr = null;
+  for(let i=0;i<3;i++){
+    try{
+      const r = await fetch(path, o);
+      let data = null;
+      try{ data = await r.json(); }catch(e){}
+      if(!r.ok) throw Object.assign(new Error((data&&data.error)||('HTTP '+r.status)), {status:r.status, data});
+      return data;
+    }catch(e){
+      // HTTP 状态类错误（401/400 等）不重试，只重试网络层失败
+      if(e.status) throw e;
+      lastErr = e;
+      if(i < 2) await new Promise(res=>setTimeout(res, 600 + i*900));
     }
-    const row = await cloudLoadRow();
-    if(row){
-      const { data, error } = await cloud.database.from('saves')
-        .update({ data: S, owner_name: (S.name || '').trim() || null, updated_at: new Date().toISOString() })
-        .eq('id', row.id).select();
-      if(error) throw error;
-      if(!Array.isArray(data) || !data.length) throw new Error('存档更新未生效');
-    }else{
-      const { error } = await cloud.database.from('saves')
-        .insert({ data: S, owner_name: (S.name || '').trim() || null }).select();
-      if(error){
-        if(error.code === '23505'){          // 并发下已被其他标签页建行 → 改走更新
-          const again = await cloudLoadRow();
-          if(again){
-            const r2 = await cloud.database.from('saves')
-              .update({ data: S, owner_name: (S.name || '').trim() || null, updated_at: new Date().toISOString() })
-              .eq('id', again.id).select();
-            if(r2.error) throw r2.error;
-          }
-        }else{
-          throw error;
-        }
-      }
-    }
-    pushFailed = false;
-  }catch(e){
-    if(!pushFailed){
-      pushFailed = true;
-      toast('⚠️ 云端存档同步失败：'+((e && e.message) || '网络错误，请稍后自动重试'),'bad');
-    }
-  }finally{
-    pushing = false;
-    if(pushQueued){ pushQueued = false; pushSave(); }
   }
+  throw lastErr || new Error('网络错误');
+}
+function onSessionLost(){
+  SERVER_MODE = false;
+  toast('登录状态已失效，请重新登录','bad');
+  setTimeout(()=>showAuth('login'), 900);
 }
 
 /* ---------------- 鱼种生成 ---------------- */
@@ -2013,12 +1999,12 @@ function doImport(){
   try{
     const t = document.getElementById('impTxt').value.trim();
     const d = JSON.parse(decodeURIComponent(escape(atob(t))));
-    const uid = ME ? ME.uid : '';
+    const uid = S ? S.uid : '';
     S = hydrate(d);
-    S.uid = uid;
-    if(!S.name || !String(S.name).trim()) S.name = '无名钓手';
+    S.uid = uid || (CURRENT_USER?CURRENT_USER.uid:'');
+    S.name = (CURRENT_USER && CURRENT_USER.username) || S.name;
     closeModal(); renderAll(); flushSave();
-    toast('导入成功，已同步到云端','good');
+    toast('导入成功，已同步到账号','good');
     pushLog('📥 存档导入成功','log-big');
   }catch(e){ toast('存档格式错误','bad'); }
 }
@@ -2028,20 +2014,15 @@ function resetGame(){
     '<button class="btn" onclick="closeModal()">取消</button><button class="btn" style="background:#5c1f26;border-color:#a33" onclick="doReset()">确认重置</button>');
 }
 async function doReset(){
-  // 先删云端存档行，再本地重建并上传
-  try{
-    const row = await cloudLoadRow();
-    if(row){
-      const { data, error } = await cloud.database.from('saves').delete().eq('id', row.id).select();
-      if(error) throw error;
-      if(!Array.isArray(data) || !data.length) throw new Error('存档删除未生效');
-    }
-  }catch(e){
-    toast('重置失败：'+((e && e.message) || '云端错误'),'bad'); return;
+  if(SERVER_MODE){
+    try{ await api('/api/reset', {method:'POST'}); }
+    catch(e){ toast('重置失败：'+(e.message||'服务器错误'),'bad'); return; }
   }
+  cacheClear();
+  const uid = CURRENT_USER ? CURRENT_USER.uid : '';
+  const uname = CURRENT_USER ? CURRENT_USER.username : '本地钓手';
   S = newSave();
-  S.uid = ME ? ME.uid : '';
-  S.name = '无名钓手';
+  S.uid = uid; S.name = uname;
   initNpcs(); closeModal(); logs = [];
   pushLog('🔄 存档已重置，全新钓鱼之旅开始！','log-big');
   renderAll(); flushSave();
@@ -4542,136 +4523,110 @@ function stopAllTimers(){
   PX.scene.phase = '';
 }
 
-/* ---------------- 登录（云服务：手机号验证码 / 微信） ---------------- */
-let pendingOtp = null;        // {phone, verificationId, isExistingUser}
-let codeCountdown = 0, codeTimer = null;
+/* ---------------- 登录 / 注册 ---------------- */
+let authMode = 'login';
+let localAccounts = [];
 
-function showAuth(){
+function showAuth(mode){
+  if(mode) authMode = mode;
   stopAllTimers();
   document.getElementById('gameRoot').classList.remove('on');
   document.getElementById('authScreen').classList.add('on');
   document.body.style.overflow = 'auto';
-  setTimeout(()=>{ try{ document.getElementById('authPhone').focus(); }catch(e){} }, 120);
+  switchAuth(authMode);
+  refreshLocalAccounts();
+  setTimeout(()=>{ try{ document.getElementById('authUser').focus(); }catch(e){} }, 120);
 }
 function hideAuth(){
   document.getElementById('authScreen').classList.remove('on');
   document.getElementById('gameRoot').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
+function switchAuth(mode){
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('on', mode==='login');
+  document.getElementById('tabReg').classList.toggle('on', mode==='reg');
+  document.getElementById('pass2Wrap').style.display = mode==='reg' ? 'block' : 'none';
+  document.getElementById('authSubmit').textContent = mode==='reg' ? '注 册 并 开 始' : '登 录';
+  document.getElementById('authErr').classList.remove('on');
+  document.getElementById('authUser').setAttribute('autocomplete', mode==='reg'?'username':'username');
+  document.getElementById('authPass').setAttribute('autocomplete', mode==='reg'?'new-password':'current-password');
+}
 function authErr(msg){
   const el = document.getElementById('authErr');
   el.textContent = msg; el.classList.add('on');
 }
-function phoneErr(msg){
-  const el = document.getElementById('phoneErr');
-  if(el) el.textContent = msg || '';
-}
-function onPhoneInput(){
-  phoneErr('');
-  document.getElementById('authErr').classList.remove('on');
-}
-/** 获取验证码：仅负责发送，验证在 submitAuth 单独进行 */
-async function sendPhoneCode(){
-  const btn = document.getElementById('btnSendCode');
-  const phone = (document.getElementById('authPhone').value || '').trim();
-  if(!/^1\d{10}$/.test(phone)){ phoneErr('请输入正确的 11 位手机号'); return; }
-  phoneErr('');
-  document.getElementById('authErr').classList.remove('on');
-  if(codeTimer) return;
-  btn.disabled = true;
-  try{
-    const sent = await cloud.auth.sendOtp({ phone });
-    if(sent.error){ authErr(sent.error.message || '验证码发送失败，请稍后重试'); btn.disabled = false; return; }
-    pendingOtp = { phone, verificationId: sent.data.verificationId, isExistingUser: sent.data.isExistingUser };
-    toast('验证码已发送','good');
-    codeCountdown = 60;
-    btn.textContent = codeCountdown + ' 秒后重发';
-    codeTimer = setInterval(()=>{
-      codeCountdown--;
-      if(codeCountdown <= 0){
-        clearInterval(codeTimer); codeTimer = null;
-        btn.disabled = false; btn.textContent = '获取验证码';
-      }else{
-        btn.textContent = codeCountdown + ' 秒后重发';
-      }
-    }, 1000);
-  }catch(e){
-    authErr('验证码发送失败，请检查网络后重试');
-    btn.disabled = false;
-  }
-}
-/** 提交验证码登录/注册（新手机号首次登录自动建号） */
 async function submitAuth(){
   const btn = document.getElementById('authSubmit');
-  const phone = (document.getElementById('authPhone').value || '').trim();
-  const code = (document.getElementById('authCode').value || '').trim();
+  const username = (document.getElementById('authUser').value||'').trim();
+  const password = document.getElementById('authPass').value || '';
   document.getElementById('authErr').classList.remove('on');
-  if(!/^1\d{10}$/.test(phone)){ phoneErr('请输入正确的 11 位手机号'); return; }
-  phoneErr('');
-  if(!code) return authErr('请输入验证码');
-  if(!pendingOtp || pendingOtp.phone !== phone) return authErr('请先获取验证码');
+
+  if(!username) return authErr('请输入用户名');
+  if(!password) return authErr('请输入密码');
+  if(authMode==='reg'){
+    const p2 = document.getElementById('authPass2').value || '';
+    if(password !== p2) return authErr('两次输入的密码不一致');
+    if(password.length < 6) return authErr('密码至少 6 位');
+  }
 
   btn.disabled = true;
   const oldTxt = btn.textContent;
-  btn.textContent = '登录中…';
+  btn.textContent = authMode==='reg' ? '注册中…' : '登录中…';
   try{
-    const r = await cloud.auth.verifyOtp({
-      phone: pendingOtp.phone,
-      verificationId: pendingOtp.verificationId,
-      isExistingUser: pendingOtp.isExistingUser,
-      token: code,
-    });
-    if(r.error){ authErr(r.error.message || '验证码错误，请重试'); return; }
-    pendingOtp = null;
-    if(codeTimer){ clearInterval(codeTimer); codeTimer = null; }
-    const sb = document.getElementById('btnSendCode');
-    if(sb){ sb.disabled = false; sb.textContent = '获取验证码'; }
-    await afterLogin(uidOf(r.data));
+    const data = await api('/api/'+(authMode==='reg'?'register':'login'),
+      {method:'POST', body:JSON.stringify({username, password})});
+    SERVER_MODE = true;
+    afterLogin({uid:data.uid, username:data.username});
   }catch(e){
-    authErr('登录失败，请稍后重试');
+    if(e.status===0 || !e.status){
+      authErr('无法连接服务器，请稍后重试，或点击下方「重试连接」');
+    }else{
+      authErr(e.message || '操作失败');
+    }
   }finally{
     btn.disabled = false;
     btn.textContent = oldTxt;
   }
 }
-/** 微信登录（网站授权）：拿到跳转地址后导航，回调在 boot 里处理 */
-async function wechatLogin(){
+async function refreshLocalAccounts(){
+  const wrap = document.getElementById('localAccts');
   try{
-    const { data, error } = await cloud.auth.signInWithOAuth({
-      provider: 'wechat',
-      redirectTo: location.origin,      // 必须落到站点根路径
-    });
-    if(error){ authErr(error.message || '微信登录启动失败'); return; }
-    if(data && data.url) location.assign(data.url);
-  }catch(e){
-    authErr('微信登录启动失败，请稍后重试');
-  }
+    const data = await api('/api/accounts');
+    localAccounts = (data && data.accounts) || [];
+  }catch(e){ localAccounts = []; }
+
+  if(!localAccounts.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = '<div class="authDivider">本机账号 · 点击直接登录</div>'+
+    '<div class="acctList">' + localAccounts.map(a=>
+      `<button class="acctItem" onclick="quickLogin('${esc(a.username)}')">
+        <span class="av">${esc(a.username.slice(0,1))}</span>
+        <span class="an">${esc(a.username)}</span>
+        <span class="go">进入 ›</span>
+      </button>`).join('') + '</div>';
 }
-/** 从会话对象里取用户 ID */
-function uidOf(session){
-  if(session && session.user && session.user.id) return session.user.id;
-  if(session && session.id) return session.id;
-  return null;
+function quickLogin(username){
+  switchAuth('login');
+  document.getElementById('authUser').value = username;
+  document.getElementById('authPass').value = '';
+  document.getElementById('authPass').focus();
+  document.getElementById('authErr').classList.remove('on');
 }
 
-/** 登录成功后：装载云端存档 → 进入游戏 */
-async function afterLogin(uid){
-  if(!uid){
-    try{
-      const g = await cloud.auth.getUser();
-      uid = g && g.data && g.data.id;
-    }catch(e){}
-  }
-  ME = { uid: uid || '' };
-  let row = null;
+/** 登录成功后：装载存档 → 进入游戏 */
+async function afterLogin(user){
+  CURRENT_USER = user;
+  let remote = null;
   try{
-    row = await cloudLoadRow();
-  }catch(e){
-    toast('⚠️ 云端存档读取失败，将创建新存档','bad');
-  }
-  S = hydrate(row ? row.data : null);
-  S.uid = ME.uid;
-  if(!S.name || !String(S.name).trim()) S.name = '无名钓手';
+    const data = await api('/api/save');
+    remote = data ? data.save : null;
+  }catch(e){ remote = null; }
+
+  S = hydrate(remote);
+  S.uid = user.uid;
+  S.name = user.name || S.name || user.username;
+  if(!S.name) S.name = user.username;
+
   hideAuth();
   startSession();
 }
@@ -4680,6 +4635,7 @@ function startSession(){
   initNpcs();
   logs = [];
   pushLog('🎣 欢迎回来，<b class="t-legend">'+esc(S.name||'无名钓手')+'</b>！自动挂机已就绪','log-big');
+  if(!SERVER_MODE) pushLog('⚠️ 当前为本地存档模式，进度不会同步到服务端','log-bad');
   offlineSettle();
   CAST_T0 = Date.now();
   renderAll();
@@ -4703,16 +4659,17 @@ function startSession(){
 
 /* ---------------- 账号面板 ---------------- */
 function openAccount(){
+  const mode = SERVER_MODE ? '服务端存档' : '本地模式';
   openModal('👤 账号', `
     <div class="card hl">
-      <div class="row"><b class="t-legend" style="font-size:16px">${esc(S.name||'无名钓手')}</b><span class="pill p-good">云端存档</span></div>
-      <div class="kv" style="margin-top:7px"><span>账号 ID</span><b>${esc(ME&&ME.uid?ME.uid:'—')}</b></div>
+      <div class="row"><b class="t-legend" style="font-size:16px">${esc(S.name||'无名钓手')}</b><span class="pill p-good">${mode}</span></div>
+      <div class="kv" style="margin-top:7px"><span>账号 ID</span><b>${esc(CURRENT_USER?CURRENT_USER.uid:'本地')}</b></div>
       <div class="kv"><span>钓手等级</span><b>Lv.${S.lv}</b></div>
       <div class="kv"><span>累计鱼获</span><b>${fmt(S.stats.totalFish)}</b></div>
     </div>
     <div class="card">
       <div class="sec-title" style="margin:0 0 7px">切换账号</div>
-      <div class="hint" style="margin-bottom:9px">退出后可用其他手机号或微信登录，各账号进度互不影响。</div>
+      <div class="hint" style="margin-bottom:9px">退出后可用本机其他账号登录，进度互不影响。</div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="logout()">🚪 退出登录 / 切换账号</button>
     </div>
     <div class="card">
@@ -4727,18 +4684,29 @@ window.doRename = async function(){
   const v = (document.getElementById('renameInp').value||'').trim();
   if(!v) return toast('名字不能为空','bad');
   if(!/^[\u4e00-\u9fa5A-Za-z0-9_]{2,12}$/.test(v)) return toast('名字需 2-12 位，仅限中文/字母/数字/下划线','bad');
+  if(SERVER_MODE){
+    try{
+      const d = await api('/api/rename', {method:'POST', body:JSON.stringify({username:v})});
+      CURRENT_USER.username = d.username;
+    }catch(e){
+      if(e.status===409) return toast('该名字已被占用','bad');
+      return toast(e.message||'改名失败','bad');
+    }
+  }
   S.name = v;
-  closeModal(); renderAll(); flushSave();
+  closeModal(); renderAll(); save();
   toast('已改名为 '+v,'gold');
 };
 async function logout(){
   flushSave();
-  try{ await cloud.auth.signOut(); }catch(e){}
+  if(SERVER_MODE){
+    try{ await api('/api/logout', {method:'POST'}); }catch(e){}
+  }
   stopAllTimers();
-  S = null; ME = null;
+  S = null; CURRENT_USER = null;
+  cacheClear();
   closeModal();
-  showAuth();
-  toast('已退出登录','good');
+  showAuth('login');
 }
 function startNpcLazy(){}
 
@@ -4772,62 +4740,111 @@ function bindShell(){
     if(h) new ResizeObserver(()=>pxFitHero()).observe(h);
   }
   // 表单回车提交
-  ['authPhone','authCode'].forEach(id=>{
+  ['authUser','authPass','authPass2'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.addEventListener('keydown', ev=>{ if(ev.key==='Enter') submitAuth(); });
   });
 }
 let booted = false;
-/** 启动：先处理微信回调（必须早于任何登录守卫），再判断会话 */
+let probing = false;
+/** 冷启动感知的健康探测：容器/沙箱在无访问时会休眠，
+ *  唤醒可能需要十几秒到半分钟，且唤醒瞬间常出现连接被重置。
+ *  因此这里带指数退避重试，最长约 40s，期间持续给出进度提示。 */
+async function probeServer(){
+  const delays = [0, 700, 1500, 2500, 3500, 4000, 5000, 6000, 7000, 8000];
+  const t0 = Date.now();
+  let lastErr = null;
+  for(let i=0;i<delays.length;i++){
+    if(delays[i]) await new Promise(r=>setTimeout(r, delays[i]));
+    try{
+      const ctl = new AbortController();
+      const tm = setTimeout(()=>ctl.abort(), 5000);
+      const r = await fetch('/api/health', {signal: ctl.signal, cache:'no-store'});
+      clearTimeout(tm);
+      if(r.ok){ await r.json().catch(()=>{}); return true; }
+      lastErr = new Error('HTTP ' + r.status);
+    }catch(e){
+      lastErr = e;
+    }
+    // 不论成功与否，更新进度提示（第 2 次起）
+    if(i >= 1){
+      const secs = ((Date.now()-t0)/1000).toFixed(0);
+      const w = document.getElementById('offlineWarn');
+      if(w){
+        w.className = 'warnBar on waking';
+        w.textContent = '⏳ 正在唤醒账号服务…（已等待 ' + secs + ' 秒。首次访问需冷启动，'
+          + '请保持页面打开，连上后会自动放行登录）';
+      }
+    }
+  }
+  return false;
+}
+/** 重试入口：就地重新探测，不强制刷新页面（刷新会让冷启动更长） */
+async function forceRetry(){
+  if(probing) return;
+  probing = true;
+  const rb = document.getElementById('authRetry');
+  if(rb){ rb.textContent = '🔄 正在重试…'; rb.disabled = true; }
+  const sb = document.getElementById('authSubmit');
+  const sbTxt = sb ? sb.textContent : '';
+  if(sb){ sb.disabled = true; }
+  const ok = await probeServer();
+  probing = false;
+  if(rb){ rb.textContent = '🔄 重试连接'; rb.disabled = false; }
+  if(sb){ sb.disabled = false; }
+  if(ok){
+    SERVER_MODE = true;
+    await enterApp();
+  }else{
+    const w = document.getElementById('offlineWarn');
+    if(w){
+      w.className = 'warnBar on bad';
+      w.textContent = '⚠️ 账号服务暂时连不上。可能正在冷启动，请稍等几秒再点一次「重试连接」。';
+    }
+    if(rb) rb.classList.add('on');
+    if(sb) sb.textContent = sbTxt || (authMode==='reg' ? '注 册 并 开 始' : '登 录');
+  }
+}
+/** 服务可用后的入场：已有会话直接进游戏，否则展示登录页并拉取本机账号 */
+async function enterApp(){
+  const warn = document.getElementById('offlineWarn');
+  const rb = document.getElementById('authRetry');
+  if(rb) rb.classList.remove('on');
+  if(warn){ warn.className = 'warnBar'; warn.textContent = ''; }
+  const sb = document.getElementById('authSubmit');
+  if(sb){ sb.disabled = false; sb.textContent = authMode==='reg' ? '注 册 并 开 始' : '登 录'; sb.onclick = submitAuth; }
+  try{
+    const me = await api('/api/me');
+    afterLogin({uid:me.uid, username:me.username});
+    return;
+  }catch(e){ /* 未登录，走登录页 */ }
+  showAuth('login');
+  refreshLocalAccounts();
+}
 async function boot(){
   if(booted) return;
   booted = true;
   bindShell();
-
-  if(!window.WorkBuddyCloud){
-    showAuth();
-    authErr('云服务组件加载失败，请检查网络后刷新页面');
-    return;
+  // 冷启动期间先给出明确的“正在连接”反馈，避免看起来像卡死
+  const warn0 = document.getElementById('offlineWarn');
+  if(warn0){ warn0.className = 'warnBar on waking'; warn0.textContent = '⏳ 正在连接账号服务…'; }
+  const sb0 = document.getElementById('authSubmit');
+  if(sb0){ sb0.disabled = true; sb0.textContent = '连接中…'; }
+  const ok = await probeServer();
+  SERVER_MODE = ok;
+  if(ok){ await enterApp(); return; }
+  // 服务不可用：停留在登录页，给出可用的就地重试入口
+  // （不使用 location.reload —— 刷新往往让冷启动更慢，且用户会以为是死循环）
+  SERVER_MODE = false;
+  showAuth('login');
+  if(sb0){ sb0.disabled = false; sb0.textContent = '登 录'; }
+  const w = document.getElementById('offlineWarn');
+  if(w){
+    w.className = 'warnBar on bad';
+    w.textContent = '⚠️ 账号服务还在冷启动中，暂时连不上。点下方「重试连接」即可再试一次，无需刷新页面。';
   }
-  cloud = window.WorkBuddyCloud.createWorkBuddyCloud({
-    endpoint: CLOUD_CFG.endpoint,
-    oauthRelayBaseUrl: CLOUD_CFG.oauthRelayBaseUrl,
-    publishableKey: CLOUD_CFG.publishableKey,
-  });
-  cloud.auth.onAuthStateChange((event)=>{
-    if(event === 'SIGNED_OUT'){
-      ME = null; S = null;
-      stopAllTimers();
-      showAuth();
-    }
-  });
-
-  // 1) 微信登录回调：URL 带 code 时兑换会话；普通访问返回空数据，属正常分支
-  try{
-    const cb = await cloud.auth.handleWechatWebCallback();
-    const sess = cb && cb.data ? (cb.data.session || cb.data) : null;
-    if(sess && !cb.error){
-      history.replaceState(null, '', location.pathname);   // 清掉 code/state，防止刷新重放
-      await afterLogin(uidOf(sess));
-      return;
-    }
-  }catch(e){ /* 回调异常时按普通访问继续 */ }
-
-  // 2) 会话守卫：有会话直接进游戏，否则展示登录页
-  await enterApp();
-}
-/** 服务可用后的入场：已有会话直接进游戏，否则展示登录页 */
-async function enterApp(){
-  const warn = document.getElementById('offlineWarn');
-  if(warn){ warn.className = 'warnBar'; warn.textContent = ''; }
-  try{
-    const { data: session, error } = await cloud.auth.getSession();
-    if(error || !session){ showAuth(); return; }
-    await afterLogin(uidOf(session));
-  }catch(e){
-    showAuth();
-    authErr('连接云端账号服务失败，请检查网络后重试');
-  }
+  const rb = document.getElementById('authRetry');
+  if(rb) rb.classList.add('on');
 }
 window.addEventListener('DOMContentLoaded', boot);
 if(document.readyState!=='loading') boot();
