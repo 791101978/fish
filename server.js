@@ -1,5 +1,5 @@
 /**
- * 摸鱼垂钓 · 静态托管服务端
+ * 放松垂钓 · 静态托管服务端
  * 账号体系与存档已迁移至 WorkBuddy 云服务（Auth + Database，RLS 隔离），
  * 本服务只负责把游戏页面发出去，不再自建账号接口。
  *   - 仅对外暴露 fishing-game.html 一个文件，杜绝 server.js / package.json 等源码外泄
@@ -49,7 +49,7 @@ process.on('uncaughtException', e => console.error('[uncaught]', e && e.stack ||
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
-  console.log('  🎣 摸鱼垂钓 · 页面服务已启动');
+  console.log('  🎣 放松垂钓 · 页面服务已启动');
   console.log('  ────────────────────────────────');
   console.log('  地址：http://localhost:' + PORT);
   console.log('  账号 / 存档：WorkBuddy 云服务');

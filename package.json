@@ -2,7 +2,7 @@
   "name": "moyu-fishing",
   "version": "2.0.0",
   "private": true,
-  "description": "摸鱼垂钓 · 文字挂机钓鱼（账号版）：Node 原生后端 + 注册登录 + 多账号存档",
+  "description": "放松垂钓 · 文字挂机钓鱼：静态前端 + WorkBuddy 云服务（手机验证码/微信登录、云存档）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

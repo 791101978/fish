@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1a2a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎣</text></svg>">
-<title>摸鱼垂钓 · 文字挂机钓鱼</title>
+<title>放松垂钓 · 文字挂机钓鱼</title>
 <style>
 :root{
   --bg:#0a1520; --bg2:#0e1f2e; --panel:#12293c; --panel2:#173148;
@@ -370,7 +370,7 @@ header{
 <div id="authScreen">
   <div class="authBox">
     <div class="authBrand">
-      <div class="bt"><span class="dot"></span>摸鱼垂钓</div>
+      <div class="bt"><span class="dot"></span>放松垂钓</div>
       <div class="bs">全自动挂机 · 打窝策略 · 装备养成</div>
     </div>
 
@@ -403,7 +403,7 @@ header{
 <div id="gameRoot">
 <div id="app">
   <header>
-    <div class="logo"><span class="dot"></span>摸鱼垂钓</div>
+    <div class="logo"><span class="dot"></span>放松垂钓</div>
     <div class="res" id="resBar"></div>
     <button class="btn sm only-mobile" id="btnMenuL">☰ 面板</button>
     <button class="btn sm only-mobile" id="btnMenuR">社交</button>
@@ -457,7 +457,7 @@ header{
 <script>
 "use strict";
 /* =========================================================================
-   摸鱼垂钓 · 零依赖文字挂机钓鱼
+   放松垂钓 · 零依赖文字挂机钓鱼
    ========================================================================= */
 
 /* ---------------- 品级配置 ---------------- */
@@ -3059,15 +3059,14 @@ const IMG_TINT = {
   abyss:  { col:'rgba(60,120,170,0.26)',  dark:'rgba(4,10,18,0.42)' },
 };
 
-/** 绘制底图：整图随浪起伏（明显可感）+ 微倾斜，再叠渔场色罩。
- *  静水场景的“活着感”全靠这一层的持续位移，幅度必须肉眼可见。 */
+/** 绘制底图：镜头固定（整图不再随浪起伏/倾斜），只叠渔场色罩。
+ *  画面的“活着感”改由水面波光、竿线摆动与浮漂承担，避免坐船般的整体晃动。 */
 function pxDrawBgImage(sk){
   const c = PX.ctx;
-  const amp = (sk.rock || 1);
-  // 双频叠加：主涌浪 3.4px + 细碎波纹 1.3px，周期分别约 3.7s / 1.3s
-  const t = PX.frame;
-  const bob = Math.sin(t * 0.045) * (3.4 * amp) + Math.sin(t * 0.128 + 1.1) * (1.3 * amp);
-  const tilt = Math.sin(t * 0.036) * (0.45 * amp) + Math.sin(t * 0.101) * (0.14 * amp);
+  // 镜头固定：底图不再随浪起伏/倾斜。
+  // 原实现的整图位移（主涌浪 3.4px + 细碎波纹 1.3px，叠加约 0.45° 倾斜）
+  // 会让整个场景像"坐在船上被晃"，这里统一归零，只保留水面自身的波光。
+  const bob = 0, tilt = 0;
   PX.bgBob = bob; PX.bgTilt = tilt;
   const sel = IMG_TINT[sk.id] || IMG_TINT.lake;
 
