@@ -3207,7 +3207,9 @@ function pxDrawImgRod(ang, pull, thick){
   for(let i=0;i<=steps;i++){
     const k = i/steps;
     const bend = sag * Math.pow(k, 1.55);
-    const xx = Math.round(bx + (ex-bx)*k);
+    /* 受力弯曲：竿梢同时向「鱼所在的一侧」（左/下）弯 —— 只有向下的垂度
+       看不出竿在较劲，叠加水平分量才是真实的受拉弯曲 */
+    const xx = Math.round(bx + (ex-bx)*k - bend*0.45);
     const yy = Math.round(by + (ey-by)*k + bend);
     // 根部深褐 → 竿梢浅木色；整体比底图暗一档以保证对比
     // 竿体：根部中褐 → 梢端近黑（参考图竿通体深色；梢端必须压得住亮色天空带，否则竿梢"隐形"、鱼线像悬空）
@@ -3231,10 +3233,10 @@ function pxDrawImgRod(ang, pull, thick){
   pxRect(handX-4, handY+2, 3, 3, '#c49064');            // 手下缘阴影
   pxRect(handX-7, handY-1, 4, 6, '#b8442a');            // 袖口（橙红救生衣）
   pxRect(handX-7, handY-1, 4, 2, '#d4573a');            // 袖口受光
-  /* 可见竿梢 = 直线端点 + 末端弯垂量。鱼线必须锚在弯垂后的梢端，
+  /* 可见竿梢 = 直线端点 + 末端弯垂量（含向鱼侧的水平弯曲）。鱼线必须锚在弯垂后的梢端，
      否则线会悬空在竿梢上方十几像素（线竿不匹配） */
-  PX._rodEx = ex; PX._rodEy = ey + sag;
-  return {ex, ey: ey + sag};
+  PX._rodEx = ex - sag*0.45; PX._rodEy = ey + sag;
+  return {ex: ex - sag*0.45, ey: ey + sag};
 }
 
 /** 钓线（图像模式）：二次贝塞尔，可给中段垂度，1~2px 浅色 */
@@ -3248,6 +3250,23 @@ function pxDrawImgLine(x1,y1,x2,y2,sag,thick){
     const yy = ik*ik*y1 + 2*ik*k*my + k*k*y2;
     pxRect(Math.round(xx), Math.round(yy), t, t, '#e8f2f8');
   }
+}
+
+/** 鱼钩（图像模式）：以「鱼嘴/线端」为锚点，钩柄朝线的方向、钩弯挂住嘴。
+ *  angDeg = 悬挂角（鱼头方向角）：钩柄沿线方向，钩随鱼的挣扎一起摆 */
+function pxDrawImgHook(x, y, angDeg){
+  const c = PX.ctx;
+  c.save();
+  c.translate(Math.round(x), Math.round(y));
+  /* -90°：fishA=90°（嘴朝上）时钩柄恰好竖直朝上（指向竿梢） */
+  c.rotate((angDeg - 90) * Math.PI / 180);
+  /* 局部坐标：+y = 鱼身方向（远离竿梢），-y = 指向竿梢（钩柄方向） */
+  pxRect(-1, -7, 2, 7, '#dbe6ee');      // 钩柄（接主线）
+  pxRect(-1, 0, 2, 3, '#dbe6ee');       // 钩弯下行
+  pxRect(-3, 2, 4, 2, '#dbe6ee');       // 钩弯底（挂嘴处）
+  pxRect(-4, -1, 2, 4, '#dbe6ee');      // 钩尖上升段
+  pxPix(-4, -2, '#ffffff');             // 钩尖高光
+  c.restore();
 }
 
 /** 浮漂（图像模式）：橙球 + 黑顶 + 白腰，带水中倒影（参考图的圆浮球） */
@@ -3737,12 +3756,17 @@ function pxDrawSceneImg(){
     pull = 2.4 + Math.sin(PX.frame*0.09) * 2.6;       // 竿梢持续轻颤
   } else if(s.state==='bite'){
     ang = s.fishSize==='big' ? 194 : (s.fishSize==='mid' ? 202 : 207);
-    pull = s.fishSize==='big' ? (30 + Math.sin(s.t*0.9)*6)
-         : s.fishSize==='mid' ? (14 + Math.min(10,s.t*0.7)*0.6) : 7;
+    /* 受力弯曲大幅增强：咬钩时鱼在拉扯，竿必须明显弯弓 */
+    pull = s.fishSize==='big' ? (46 + Math.sin(s.t*0.9)*8)
+         : s.fishSize==='mid' ? (24 + Math.min(12,s.t*0.7)) : 12;
   } else if(s.state==='reel'){
-    const big = s.fishSize==='big', dur = big ? 46 : 26, k = Math.min(1, s.t/dur);
-    ang = 213 - k*12; pull = big ? (1-k)*30 : (1-k)*14;
-  } else if(s.state==='caught'){ ang = 206; pull = 8; }
+    /* 收线：线越短拉力越大 → 弯曲逐渐回弹 */
+    const big = s.fishSize==='big', dur = big ? 56 : 34, k = Math.min(1, s.t/dur);
+    ang = 213 - k*12; pull = big ? (1-k)*42+8 : (1-k)*22+6;
+  } else if(s.state==='caught'){
+    if(s.fishSize==='big'){ ang = 200; pull = 34; }        // 巨物仍在水里较劲
+    else { ang = 208; pull = 18; }                          // 普通鱼吊在梢下
+  }
   else if(s.state==='lost'){
     ang = s.result==='break' ? 198 : 204;
     pull = s.result==='break' ? 26 : 4;
@@ -3871,17 +3895,22 @@ function pxDrawSceneImg(){
     pxDrawImgRings(bobX + sway, sy + 3, 165, 4, 0.42, 2.1);
     // 水花：咬钩越猛越大
     if(T % 4 === 0) pxEmitSplash(bobX + sway, sy + 2, small?5:(mid?12:20));
-    // 鱼咬在浮漂正下方：嘴朝上对准线端（+90°= 正上方），持续挣扎摆动
-    const fishY = Math.min(300, bY + 14 + sink*0.4);
-    const fishA = 86 + Math.sin(T*0.85)*14;                  // 头（嘴）朝上左右甩头
+    /* 鱼嘴精确咬在钩弯上：钩位=浮漂正下方，鱼中心沿「嘴→尾」方向下垂，
+       挣扎时整条鱼绕钩摆，嘴永远钉在钩上 */
     const biteLook = pxFishLook(s.fishName||'', s.fishRarity);
     const biteSpec = fishDrawSpec(s.fishSize, biteLook);
-    pxDrawImgFish(bobX + sway*0.85, fishY, col, fishA, 0, {alpha:0.82, look: biteLook, len: biteSpec.len, big: biteSpec.big});
-    // 鱼嘴到浮漂的短线（咬钩连接段）：锚在鱼吻端（竖直上方）
-    pxDrawImgLine(bobX + sway, bY + 4, bobX + sway*0.85, fishY - biteSpec.nose*0.92, 0, 1);
+    const hx = bobX + sway, hy = bY + 7;                     // 钩位（浮漂下）
+    const fishA = 90 + Math.sin(T*0.85)*12;                  // 头（嘴）朝上左右甩头
+    const ma = fishA * Math.PI / 180;
+    const fx = hx + Math.cos(ma)*biteSpec.nose*0.95;         // 嘴→尾：中心 = 钩 + nose 方向
+    const fy = Math.min(302, hy + Math.sin(ma)*biteSpec.nose*0.95);
+    // 主线：竿梢 → 钩柄顶（咬钩时绷紧，几乎无垂度）
+    pxDrawImgLine(rod.ex, rod.ey, hx + 7*Math.sin(ma - Math.PI/2), hy - 7*Math.cos(ma - Math.PI/2), small?6:1, small?1:2);
+    pxDrawImgFish(fx, fy, col, fishA, 0, {alpha:0.82, look: biteLook, len: biteSpec.len, big: biteSpec.big});
+    pxDrawImgHook(hx, hy, fishA);
     // 巨物：水下更大剪影 + 泄力器光点
     if(!small && !mid){
-      pxDrawImgFish(bobX + sway - 16, Math.min(304, fishY + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
+      pxDrawImgFish(hx - 16, Math.min(304, fy + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
       for(let i=0;i<6;i++){
         const ph = (PX.frame + i*3) % 14;
         if(ph < 7) pxPix(PX.L.rodHandX - 8 - i*5, PX.L.rodHandY + 2 + (i%2), '#ffd27a');
@@ -3890,41 +3919,47 @@ function pxDrawSceneImg(){
     }
   }
 
-  /* ================= 4. 上鱼 ================= */
+  /* ================= 4. 上鱼（收线：线缩短，鱼沿弧线飞向竿梢下悬挂） ================= */
   else if(s.state==='reel'){
     const T = s.t, big = s.fishSize==='big';
-    const dur = big ? 52 : 30;
+    const dur = big ? 56 : 34;
     const k = Math.min(1, T/dur);
     const ease = k*k*(3-2*k);                    // smoothstep 缓动：无匀速生硬感
     const col = pxRarityColor(s.fishRarity);
-    /* 鱼始终咬在「线端」：线的末端=鱼嘴，全程连续不跳变。
-       尺寸与咬钩阶段用同一 spec → 不会出现“钓上来一瞬间变大”。
-       轨迹：从浮漂处沿水面拖行 → 平滑抬头 → 被提到半空 */
-    const mouthX = bobX + ease*(366 - bobX);                    // 拖向船头前水域（参考图：在船边出水）
-    const lift  = Math.max(0, ease - 0.45) / 0.55;              // 后 55% 才离水
     const reelLook = pxFishLook(s.fishName||'', s.fishRarity);
     const spec = fishDrawSpec(s.fishSize, reelLook);
-    // 鱼嘴朝上（+90°= 正上方）：拖行时近水平，起水后逐渐竖立
-    const ang = 14 + lift*76 + Math.sin(T*0.75)*9;
-    // 纵向位置：正常缓动上提；大个体按倾角抬高，避免鱼尾被画面裁掉
-    const need = Math.abs(Math.sin(ang*Math.PI/180)) * spec.len * 0.58;
-    const mouthY = Math.min(sy - 2 - lift*lift*54, PX.H - 4 - need);
-    // 线：竿梢 → 鱼嘴（锚在鱼吻端，随倾角一起算）
-    const na = ang * Math.PI / 180;
-    pxDrawImgLine(rod.ex, rod.ey, mouthX - spec.nose*Math.cos(na)*0.92, mouthY - spec.nose*Math.sin(na)*0.92, 2, big?2:1);
-    pxDrawImgFish(mouthX, mouthY, col, ang, 0, {big:spec.big, look:reelLook, len:spec.len});
-    // 水面拖行痕迹（仅入水阶段）
-    if(lift < 0.25){
-      for(let i=0;i<12;i++){
-        const kx = i/11, wx = mouthX + 10 + kx*60;
-        PX.ctx.globalAlpha = 0.38*(1-kx*0.75);
-        pxRect(Math.round(wx), Math.round(sy + 1 + kx*6), 2, 1, '#e6f4fc');
-        pxRect(Math.round(mouthX - 12 - kx*46), Math.round(sy + 1 + kx*6), 2, 1, '#e6f4fc');
-        PX.ctx.globalAlpha = 1;
-      }
+    /* 参考图：收线 = 线长单调缩短，鱼被拉离水沿「竿梢为圆心的弧」荡向梢下，
+       最后嘴咬钩吊在线端。全程线端=钩=鱼嘴，三点重合不跳变 */
+    const dx0 = bobX - rod.ex, dy0 = sy - 8 - rod.ey;
+    const a0 = Math.atan2(dy0, dx0);                       // 竿梢→出水点的方向
+    const a1 = (Math.PI/2) - (big ? 0.42 : 0);             // 巨物略斜悬挂免得鱼尾出画
+    const aa = a0 + (a1 - a0)*ease + Math.sin(T*0.9)*0.05; // 弧线摆动 + 挣扎
+    const L0 = Math.hypot(dx0, dy0);
+    const L1 = big ? 18 : spec.len*0.5 + 16;               // 收完后的短线（鱼吊梢下）
+    const LL = Math.max(L1, L0 + (L1 - L0)*ease);          // 线长缩短
+    const mx = rod.ex + Math.cos(aa)*LL;                   // 鱼嘴 = 线端
+    const my = rod.ey + Math.sin(aa)*LL;
+    // 鱼：身体顺线悬挂（头朝竿梢），挣扎摆动；越界时整体上收保鱼嘴在线端
+    const hangA = aa*180/Math.PI + Math.sin(T*0.85)*10;
+    const ma = hangA * Math.PI / 180;
+    const lim = PX.H - 4 - spec.len*0.5;
+    let fy = my + Math.sin(ma)*spec.nose*0.95;
+    let fx = mx + Math.cos(ma)*spec.nose*0.95;
+    if(fy > lim){
+      const off = Math.max(4, (lim - my) / Math.max(0.2, Math.sin(ma)));
+      fy = my + Math.sin(ma)*off; fx = mx + Math.cos(ma)*off;
     }
-    pxDrawImgRings(mouthX, sy + 4, 120, 3, 0.32, 1.3);
-    if(T % 3 === 0 && lift < 0.7) pxEmitSplash(mouthX - 4, sy + 2, big?14:7);
+    const mouthX2 = fx - Math.cos(ma)*spec.nose*0.95;      // 反推真实嘴位（=线端）
+    const mouthY2 = fy - Math.sin(ma)*spec.nose*0.95;
+    // 线：竿梢 → 鱼嘴（绷紧）
+    pxDrawImgLine(rod.ex, rod.ey, mouthX2, mouthY2, 1, big?2:1);
+    pxDrawImgFish(fx, fy, col, hangA, 0, {big:spec.big, look:reelLook, len:spec.len});
+    pxDrawImgHook(mouthX2, mouthY2, hangA);
+    // 出水阶段水花（前 30% 还贴水时）
+    if(ease < 0.3){
+      if(T % 3 === 0) pxEmitSplash(mx, sy + 2, big?14:7);
+      pxDrawImgRings(mx, sy + 4, 120, 3, 0.32, 1.3);
+    }
     if(T > dur){ if(big) pxShake(); pxSetScene('caught', {rarity:s.fishRarity, size:s.fishSize}); }
   }
 
@@ -4019,15 +4054,23 @@ function pxDrawSceneImg(){
       pxDrawImgRings(cx, sy + 8, 150, 4, 0.36, 1.7);
       if(T === 2) pxShake();
     } else {
-      // 普通钓获：鱼被提在船侧，嘴朝上（+90°= 正上方）、轻微摆动
-      const ang = 78 + Math.sin(T*0.2)*6;
-      const noseOff = spec.nose;
-      const cy = Math.min(sy - 20, PX.H - 6 - Math.abs(Math.sin(ang*Math.PI/180))*spec.len*0.58);
-      const cx = bobX + 70;
-      pxDrawImgFish(cx, cy, col, ang, 0, {look, len: spec.len});
-      pxDrawImgLine(rod.ex, rod.ey, cx + noseOff*0.18, cy - noseOff*0.98, 6, 1);
-      if(T % 5 < 3) pxEmitSplash(cx, sy + 2, 5);
-      pxDrawImgRings(cx, sy + 4, 100, 3, 0.24, 1.0);
+      // 普通钓获：吊在竿梢下展示（与收线结束姿势衔接），轻微挣扎摆动
+      const hangA = 92 + Math.sin(T*0.7)*9;
+      const ma = hangA * Math.PI / 180;
+      const hx2 = rod.ex + Math.sin(T*0.35)*2, hy2 = rod.ey + 8;
+      let fy2 = hy2 + Math.sin(ma)*spec.nose*0.95;
+      let fx2 = hx2 + Math.cos(ma)*spec.nose*0.95;
+      const lim2 = PX.H - 4 - spec.len*0.5;
+      if(fy2 > lim2){
+        const off = Math.max(4, (lim2 - hy2) / Math.max(0.2, Math.sin(ma)));
+        fy2 = hy2 + Math.sin(ma)*off; fx2 = hx2 + Math.cos(ma)*off;
+      }
+      const mx2 = fx2 - Math.cos(ma)*spec.nose*0.95;       // 嘴位 = 线端
+      const my2 = fy2 - Math.sin(ma)*spec.nose*0.95;
+      pxDrawImgLine(rod.ex, rod.ey, mx2, my2, 1, 1);
+      pxDrawImgFish(fx2, fy2, col, hangA, 0, {look, len: spec.len});
+      pxDrawImgHook(mx2, my2, hangA);
+      pxDrawImgRings(mx2, sy + 4, 100, 3, 0.24, 1.0);
     }
     if(T > 44) pxToIdle();
   }
