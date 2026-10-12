@@ -1184,44 +1184,17 @@ function triggerTide(name, force){
   }
   pushLog('　全场上钩速度翻倍、稀有鱼概率大幅提升，持续 3 分钟','log-mystic');
   toast('🌊 全域鱼潮！稀有鱼概率暴涨','mystic');
-  // 聊天室炸锅
-  setTimeout(()=>{ pushChat('鱼潮来了！'); }, 900);
-  setTimeout(()=>{ pushChat('赶紧打窝！这波血赚'); }, 2400);
 }
 
-/* ---------------- 多人模拟 ---------------- */
+/* ---------------- 多人模拟（已下线：不再生成模拟钓友） ---------------- */
 let npcs = [];
 function initNpcs(){
   npcs = [];
-  const n = 5 + Math.floor(Math.random()*4);
-  const pool = NAME_POOL.slice().sort(()=>Math.random()-0.5);
-  for(let i=0;i<n;i++){
-    npcs.push({
-      name: pool[i%pool.length],
-      uid: 'N'+Math.random().toString(36).slice(2,7).toUpperCase(),
-      power: Math.round(800 + Math.random()*4000),
-      score: Math.round(Math.random()*4200),
-      rareScore: Math.round(Math.random()*1600),
-      spot: SPOTS[Math.floor(Math.random()*SPOTS.length)].id,
-      nestTier: 0,
-      osc: Math.random()*Math.PI*2,
-      status: Math.random()<0.6?'挂机中':'打窝中',
-    });
-  }
 }
 function tickNpcs(){
   const now = Date.now();
-  npcs.forEach(n=>{
-    // 战力与积分自然增长
-    n.power += Math.round((12 + Math.random()*46) * (ENV.tideUntil>now?2.1:1));
-    n.score += Math.round((8 + Math.random()*52) * (ENV.tideUntil>now?2.2:1));
-    if(Math.random()<0.28) n.rareScore += Math.round(Math.random()*55 * (ENV.tideUntil>now?2:1));
-    if(Math.random()<0.10) n.spot = SPOTS[Math.floor(Math.random()*SPOTS.length)].id;
-    if(Math.random()<0.06){ n.nestTier = 1+Math.floor(Math.random()*4); n.status='打窝中'; }
-    else if(Math.random()<0.14){ n.nestTier = Math.max(0,n.nestTier-1); n.status = n.nestTier>0?'挂机中':'挂机中'; }
-  });
-  // 渔场饱和增益：统计同渔场打窝人数
-  const sameSpotNesting = npcs.filter(n=>n.spot===S.spot && n.nestTier>0).length + (nestState().active?1:0);
+  // 渔场饱和增益：统计同渔场打窝人数（模拟钓友已下线，仅统计自己）
+  const sameSpotNesting = (nestState().active?1:0);
   S.satietyCount = sameSpotNesting;
   if(sameSpotNesting>=3){
     ENV.satiety = Math.min(0.30, 0.15 + (sameSpotNesting-3)*0.05);
@@ -1230,27 +1203,6 @@ function tickNpcs(){
   // 环境鱼潮
   if(now > ENV.tideNextAt && ENV.tideUntil < now){
     triggerTide('随机鱼潮');
-  }
-  // 聊天
-  if(now > ENV.chatUntil){
-    ENV.chatUntil = now + 9000 + Math.random()*16000;
-    pushChat(CHAT_POOL[Math.floor(Math.random()*CHAT_POOL.length)], true);
-  }
-  // 高光播报
-  if(Math.random()<0.10){
-    const n = npcs[Math.floor(Math.random()*npcs.length)];
-    const kind = Math.random();
-    if(kind<0.34){
-      const fr = ['rare','epic','legend','legend'][Math.floor(Math.random()*4)];
-      const f = makeFish(fr);
-      pushLog('📣 '+raritySpan(fr,'【'+f.name+'】')+' —— 钓友 <b>'+esc(n.name)+'</b> 爆护了！','log-rare');
-    }else if(kind<0.62){
-      pushLog('📣 钓友 <b>'+esc(n.name)+'</b> 使用了 <b class="t-epic">'+BAITS[n.nestTier||1].name+'</b>，渔场活跃度提升','log-tip');
-    }else if(kind<0.80){
-      pushLog('📣 钓友 <b>'+esc(n.name)+'</b> 装备进阶成功，战力提升至 '+fmt(n.power),'log-sys');
-    }else{
-      pushLog('📣 钓友 <b>'+esc(n.name)+'</b> 在 <b>'+SPOTS.find(s=>s.id===n.spot).name+'</b> 钓获巨物','log-big');
-    }
   }
 }
 function pushChat(msg, fromNpc){
@@ -1871,21 +1823,8 @@ function claimRankReward(){
 /* ---- 视图：钓友 ---- */
 function viewSocial(){
   let h = '<div class="sec"><div class="sec-title">在线钓友（实时）</div>';
-  npcs.forEach((n,i)=>{
-    const sp = SPOTS.find(s=>s.id===n.spot);
-    h += `<div class="card"><div class="row"><b>${esc(n.name)}</b><span class="pill ${n.status==='打窝中'?'p-good':'p-common'}">${n.status}</span></div>
-      <div class="row" style="margin-top:5px"><span class="tiny">📍 ${sp.name} · 战力 ${fmt(n.power)}</span>
-      <button class="btn sm primary" onclick="helpNpc(${i})">投喂窝料 300💰</button></div>
-      ${n.nestTier>0?'<div class="tiny t-good" style="margin-top:3px">🪣 正在使用 '+BAITS[n.nestTier-1].name+'</div>':''}
-    </div>`;
-  });
-  h += `<div class="sec"><div class="sec-title">互助</div>
-    <button class="btn primary" style="width:100%;justify-content:center" onclick="claimHelp()">📢 发出互助请求（投喂/清篓）</button>
-    <div class="hint" style="margin-top:7px">给好友投喂窝料、清理鱼篓，双方均可提升挂机收益；同场打窝人数越多，饱和增益越高。</div>
-  </div>`;
-  h += `<div class="sec"><div class="sec-title">实时播报</div>
-    <div class="hint">渔场会实时播报钓友高光时刻（钓获巨物 / 高阶打窝 / 装备进阶），聊天频道同步滚动。</div>
-  </div>`;
+  h += '<div class="hint">当前没有其他钓友在线。</div>';
+  h += '</div>';
   return h;
 }
 
