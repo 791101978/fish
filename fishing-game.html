@@ -5062,6 +5062,40 @@ const BG_BOAT_ANCHOR = {
   glacier:   {x:477, surf:504},
   meteorlake:{x:477, surf:556},
 };
+/* 人物/狗落位锚点：按精灵图 alpha 通道逐列实测「甲板线」——自下而上跳过龙骨鳍/
+   垂藤等窄细底垂物，找到船体宽行区域的顶部（船舷上沿）。船舷上方可能立着烟囱/
+   桅杆等窄细物（宽行判定已排除），再用「甲板不得高于龙骨以上 65% 图高」兜底。
+   结果每船缓存一次，避免每帧 getImageData。 */
+const BOAT_DECK = {};
+function boatDeckProfile(id, img){
+  if(BOAT_DECK[id]) return BOAT_DECK[id];
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if(!w || !h) return null;
+  try{
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently:true });
+    cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, w, h).data;
+    const A = (x,y)=>d[(y*w+x)*4+3];
+    const bots = new Array(w).fill(-1);
+    for(let x=0;x<w;x++){ for(let y=h-1;y>=0;y--){ if(A(x,y)>32){ bots[x]=y; break; } } }
+    const keel = Math.max.apply(null, bots);
+    const wide = Math.max(4, Math.round(w*0.06));        // 船体行宽阈值（细窄物 < 此宽）
+    const prof = new Float32Array(w);
+    for(let x=0;x<w;x++){
+      let y = bots[x];
+      if(y < 0){ prof[x] = -1; continue; }
+      const rw = yy=>{ if(A(x,yy)<=32) return 0; let l=x,r=x; while(l>0&&A(l-1,yy)>32)l--; while(r<w-1&&A(r+1,yy)>32)r++; return r-l+1; };
+      while(y>0 && rw(y)<wide) y--;                      // 跳过底部的窄细物（藤蔓/龙骨鳍）
+      if(y<=0){ prof[x] = -1; continue; }
+      while(y>0 && rw(y-1)>=wide) y--;                   // 上行到宽行区顶部 = 甲板线
+      prof[x] = y;
+    }
+    const p = { natW:w, natH:h, prof, keel };
+    BOAT_DECK[id] = p;
+    return p;
+  }catch(e){ return null; }
+}
 function pxDrawBoat(){
   const c = PX.ctx;
   const pose = pxBoatPose();
@@ -5084,16 +5118,29 @@ function pxDrawBoat(){
   c.globalAlpha = f;
   c.translate(cx, cy);
   c.rotate(rad);
+  /* 人物/狗脚线 = 实测甲板线（自动适配 10 种船形），解析失败回退旧整图比例。
+     脚再下沉少许 → 船舷盖住脚踝，人/狗是「坐进」船里。 */
+  const dk = boatDeckProfile(bid, img);
+  const scaleDN = H / img.naturalHeight;
+  const capY = dk ? dk.keel - img.naturalHeight*0.65 : -1;   // 桅杆/烟囱误判兜底
+  const deckY = (col, fb)=>{
+    if(!dk) return fb * img.naturalHeight;
+    const v = dk.prof[Math.max(0, Math.min(dk.prof.length-1, Math.round(col)))];
+    return (v >= 0 ? Math.max(v, capY) : fb * img.naturalHeight) * scaleDN;
+  };
+  const deckP = deckY((1 - geo.seat[0]) * (img.naturalWidth - 1), geo.seat[1]);
+  const deckD = deckY((1 - geo.dog[0])  * (img.naturalWidth - 1), geo.dog[1]);
   /* 钓手：坐船尾（镜像后船尾在右端），人面朝左（持竿方向，素材本身朝左）。
-     人先画、船体后画 → 船舷挡住下半身，人是「坐进」船里而非贴在船板上 */
-  const P = BOAT_PERSON_EL, ph = BOAT_PERSON.h, pw = Math.round(ph * P.naturalWidth / P.naturalHeight);
+     人先画、船体后画 → 船舷挡住下半身，人是「坐进」船里而非贴在船板上。
+     人高随船长等比缩放（参考图 人高≈船长0.27，狗高≈0.15），大船上不再显小 */
+  const P = BOAT_PERSON_EL, ph = Math.max(38, Math.min(58, Math.round(W*0.27))), pw = Math.round(ph * P.naturalWidth / P.naturalHeight);
   const px0 = Math.round(-W/2 + geo.seat[0]*W - pw/2);
-  const py0 = Math.round(topY + geo.seat[1]*H - ph);
+  const py0 = Math.round(topY + deckP + Math.max(2, H*0.06) - ph);
   c.drawImage(P, px0, py0, pw, ph);
   /* 金毛：坐船头（镜像后船头在左端），狗素材朝右 → 镜像成朝前（左）看水 */
-  const D = BOAT_DOG_EL, dh = BOAT_DOG.h, dw = Math.round(dh * D.naturalWidth / D.naturalHeight);
+  const D = BOAT_DOG_EL, dh = Math.max(20, Math.min(28, Math.round(W*0.13))), dw = Math.round(dh * D.naturalWidth / D.naturalHeight);
   const dx0 = Math.round(-W/2 + geo.dog[0]*W - dw/2);
-  const dy0 = Math.round(topY + geo.dog[1]*H - dh + Math.sin(PX.frame*0.31)*0.8);
+  const dy0 = Math.round(topY + deckD + Math.max(1, H*0.03) - dh + Math.sin(PX.frame*0.31)*0.8);
   c.save();
   c.scale(-1, 1);
   c.drawImage(D, -dx0 - dw, dy0, dw, dh);
