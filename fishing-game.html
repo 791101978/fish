@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1a2a">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎣</text></svg>">
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport">
+<meta content="#0b1a2a" name="theme-color">
+<link href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎣</text></svg>" rel="icon">
 <title>放松垂钓 · 文字挂机钓鱼</title>
 <style>
 :root{
@@ -238,6 +238,62 @@ header{
 .eqSlot .eqLv{font-size:10.5px;color:var(--txt2);margin-top:3px}
 .slotEmpty{opacity:.5}
 
+/* ---------- 装备 v2：耐久 / 词条 / 即时对比 ---------- */
+.durBar{height:6px;background:#0a1a26;border-radius:6px;overflow:hidden;margin-top:5px;border:1px solid rgba(255,255,255,.07)}
+.durBar i{display:block;height:100%;border-radius:6px;transition:width .3s,background .3s}
+.durTxt{font-size:10.5px;margin-top:3px;font-variant-numeric:tabular-nums}
+.durTxt.ok{color:#6fd6a0} .durTxt.mid{color:#ffcb52} .durTxt.low{color:#ff9aa2;font-weight:700}
+.word{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:12px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.word:last-child{border-bottom:none}
+.word .wn{flex:1;min-width:0;line-height:1.45}
+.word .wv{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;text-align:right}
+.wpos{color:#5fd08a} .wneg{color:#ff8a5c}
+.wlegend{background:linear-gradient(90deg,rgba(255,195,64,.15),transparent);border-left:2px solid var(--legend);
+  border-radius:6px;padding:5px 7px;margin:4px -7px}
+.wlegend .wn{color:#ffe9b0;font-weight:700}
+.delta{font-size:11px;font-variant-numeric:tabular-nums;margin-left:5px}
+.delta.up{color:#5fd08a} .delta.dn{color:#ff8a5c} .delta.zero{color:var(--txt3)}
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.brokenTag{position:absolute;top:6px;right:7px;font-size:9.5px;color:#ff9aa2;font-weight:800;letter-spacing:.5px}
+.eqSlot.broken{border-color:rgba(255,95,109,.5)}
+.secWarn{font-size:11.5px;color:#ff9aa2;line-height:1.5;margin-top:5px}
+
+/* ---------- 祈愿 ---------- */
+.wishCard{border:1px solid var(--line2);border-radius:12px;padding:10px 11px;margin-bottom:9px;
+  background:linear-gradient(160deg,var(--panel2),var(--panel))}
+.wishCard.deep{border-color:var(--epic);box-shadow:inset 0 0 24px rgba(176,107,255,.14)}
+.pick3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.pickCard{border:1px solid var(--line);border-radius:12px;padding:13px 8px;text-align:center;cursor:pointer;
+  transition:.16s;background:var(--panel)}
+.pickCard:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.42)}
+.pickCard .pq{font-size:13px;font-weight:800}
+.pickCard .ps{font-size:22px;margin:6px 0}
+.pickCard .pn{font-size:11.5px;color:var(--txt2)}
+.slotPick{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.slotPick .sp{padding:4px 9px;border-radius:8px;border:1px solid var(--line);font-size:11.5px;cursor:pointer;user-select:none}
+.slotPick .sp.on{border-color:var(--gold);background:rgba(255,203,82,.12);color:#ffe9b0;font-weight:700}
+.riskNote{font-size:11.5px;color:#ff9aa2;line-height:1.55}
+.blessNote{font-size:11.5px;color:#7fe0aa;line-height:1.55}
+.pityRow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--txt2);padding:2px 0}
+.pityRow b{color:var(--gold);font-variant-numeric:tabular-nums}
+.resCost{font-size:12px;color:var(--txt2)}
+.resCost b{color:var(--gold);font-variant-numeric:tabular-nums}
+.bagEq{border:1px solid var(--line);border-radius:10px;padding:8px 9px;margin-bottom:6px;cursor:pointer;transition:.14s;background:var(--panel)}
+.bagEq:hover{border-color:var(--line2);transform:translateY(-1px)}
+.bagEq .be-h{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.bagEq .be-n{font-size:12.5px;font-weight:700}
+.bagEq .be-w{font-size:11px;color:var(--txt3);margin-top:3px;line-height:1.5}
+.cmpGrid{font-size:11.5px}
+.cmpGrid .cr{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed rgba(255,255,255,.05)}
+/* 窄屏降级：属性面板单列、三选一自适应换行，避免横向滚动 */
+@media(max-width:640px){
+  .statGrid{grid-template-columns:1fr}
+  .pick3{grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px}
+  .pickCard{padding:10px 4px}
+  .pickCard .ps{font-size:18px;margin:4px 0}
+  .pickCard .pn{font-size:10.5px}
+}
+
 /* 鱼篓 */
 .fishItem{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:8px;
   background:rgba(23,49,72,.6);margin-bottom:4px;border-left:3px solid var(--line2);font-size:12px}
@@ -353,65 +409,65 @@ header{
 </head>
 <body>
 
-<!-- ============ 登录 / 注册 ============ -->
+<!--pnid:v9S6dE1OJdukLcNrVNltBw--><!-- ============ 登录 / 注册 ============ -->
 <div id="authScreen">
   <div class="authBox">
     <div class="authBrand">
-      <div class="bt"><span class="dot"></span>放松垂钓</div>
-      <div class="bs">全自动挂机 · 打窝策略 · 装备养成</div>
+      <div class="bt"><span class="dot"></span><!--pnid:4FCVBmpJnwfUHri7plvvDv-->放松垂钓</div>
+      <div class="bs"><!--pnid:9PLWcOH8I98NXxID38fXIQ-->全自动挂机 · 打窝策略 · 装备养成</div>
     </div>
 
     <div class="authCard">
       <div class="warnBar" id="offlineWarn"></div>
       <div class="authTabs">
-        <div class="authTab on" id="tabLogin" onclick="switchAuth('login')">登录</div>
-        <div class="authTab" id="tabReg" onclick="switchAuth('reg')">注册</div>
+        <div class="authTab on" id="tabLogin" onclick="switchAuth('login')"><!--pnid:OI9Y6te43NfeeCYLslK8lH-->登录</div>
+        <div class="authTab" id="tabReg" onclick="switchAuth('reg')"><!--pnid:GydL3PtS0Qk9QeCniafS8Q-->注册</div>
       </div>
       <div class="authErr" id="authErr"></div>
       <div class="field">
-        <label>用户名</label>
-        <input id="authUser" maxlength="12" placeholder="2-12 位，中文/字母/数字/下划线" autocomplete="username">
+        <label><!--pnid:AAahORTPgtRy4BDqCmkqly-->用户名</label>
+        <input autocomplete="username" id="authUser" maxlength="12" placeholder="2-12 位，中文/字母/数字/下划线">
       </div>
       <div class="field">
-        <label>密码</label>
-        <input id="authPass" type="password" maxlength="64" placeholder="至少 6 位" autocomplete="current-password">
+        <label><!--pnid:IvlRST2GgdigSXuGJsHiHs-->密码</label>
+        <input autocomplete="current-password" id="authPass" maxlength="64" placeholder="至少 6 位" type="password">
       </div>
       <div class="field" id="pass2Wrap" style="display:none">
-        <label>确认密码</label>
-        <input id="authPass2" type="password" maxlength="64" placeholder="再次输入密码" autocomplete="new-password">
+        <label><!--pnid:Nh5kyjoPlT505g8adt16Xk-->确认密码</label>
+        <input autocomplete="new-password" id="authPass2" maxlength="64" placeholder="再次输入密码" type="password">
       </div>
-      <button class="authBtn" id="authSubmit" onclick="submitAuth()">登 录</button>
-      <button class="retryBtn" id="authRetry" onclick="forceRetry()">🔄 重试连接</button>
+      <button class="authBtn" id="authSubmit" onclick="submitAuth()"><!--pnid:R6rkvHlyAxXAUw4Y1Lsvxn-->登 录</button>
+      <button class="retryBtn" id="authRetry" onclick="forceRetry()"><!--pnid:yOOj44uQQQwcx8yzrz58Cn-->🔄 重试连接</button>
       <div id="localAccts"></div>
-      <div class="authNote">进度保存在服务端，换设备登录同一账号即可继续摸鱼</div>
+      <div class="authNote"><!--pnid:jjhGPpe8Bpejq2L1Esobrj-->进度保存在服务端，换设备登录同一账号即可继续摸鱼</div>
     </div>
 
-    <div class="authFoot">零操作挂机 · 关掉页面也会持续钓鱼 · 上线一键收菜</div>
+    <div class="authFoot"><!--pnid:MGroPTJlDH1steAq6PxeiA-->零操作挂机 · 关掉页面也会持续钓鱼 · 上线一键收菜</div>
   </div>
 </div>
 
-<!-- ============ 游戏主体 ============ -->
+<!--pnid:4dVdvaoz3gVimxa1Yvw632--><!-- ============ 游戏主体 ============ -->
 <div id="gameRoot">
 <div id="app">
   <header>
-    <div class="logo"><span class="dot"></span>放松垂钓</div>
+    <div class="logo"><span class="dot"></span><!--pnid:mALv4lz8AotWK4rgvNJyo6-->放松垂钓</div>
     <div class="res" id="resBar"></div>
-    <button class="btn sm only-mobile" id="btnMenuL">☰ 面板</button>
-    <button class="btn sm only-mobile" id="btnMenuR">社交</button>
-    <button class="btn sm" id="btnNest" title="打窝">🪣 打窝</button>
-    <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
-    <button class="btn sm" id="btnAccount" title="账号">👤</button>
-    <button class="btn sm" id="btnMute" title="播报开关">🔊</button>
+    <button class="btn sm only-mobile" id="btnMenuL"><!--pnid:P8327aC6PLHxZvDXqREpu3-->☰ 面板</button>
+    <button class="btn sm only-mobile" id="btnMenuR"><!--pnid:2CRJSwTdzf0xzYYBrDox4M-->社交</button>
+    <button class="btn sm" id="btnNest" title="打窝"><!--pnid:Hqm7x6gDEdmC7E5vzCgJ7S-->🪣 打窝</button>
+    <button class="btn sm" id="btnPixel" title="像素动画开关"><!--pnid:xBCAHGYbJUjUYwdGZlfqsR-->🎞️</button>
+    <button class="btn sm" id="btnAccount" title="账号"><!--pnid:ZPrDkbLkczrb7vNAKLYVRD-->👤</button>
+    <button class="btn sm" id="btnMute" title="播报开关"><!--pnid:89bFyFBshGJIUfziUAPZJt-->🔊</button>
   </header>
 
   <div class="main">
-    <!-- 左侧 -->
+    <!--pnid:oLf4RcylTI1S2d4MZIL2Km--><!-- 左侧 -->
     <aside class="col col-left" id="colL">
       <div class="tabs" id="tabsL"></div>
       <div class="scroll" id="paneL"></div>
     </aside>
 
-    <!-- 中间渔场 -->
+    <!--pnid:1Afv8NFZ7vgEIDtHmS8KcQ--><!-- 中间渔场 -->
     <section class="col col-mid">
       <div class="scene">
         <div class="skyglow"></div>
@@ -419,11 +475,11 @@ header{
           <div class="bannerRow" id="bannerRow"></div>
           <div class="animHero" id="animHero">
             <div class="pixelWin" id="pixelWin">
-              <canvas id="pixelCv" width="720" height="320"></canvas>
-              <button class="animToggle on" id="btnPixelHero" title="动画开关（关闭仅渲染静态场景）">🎞️</button>
-              <div class="basketWarn" id="basketWarn">🧺 满仓</div>
-              <div class="animHud" id="animHud">自动垂钓中…</div>
-              <div class="pixelOff" id="pixelOff">动画已关闭<span>仅渲染静态场景图 · 适合摸鱼</span></div>
+              <canvas height="320" id="pixelCv" width="720"></canvas>
+              <button class="animToggle on" id="btnPixelHero" title="动画开关（关闭仅渲染静态场景）"><!--pnid:ngYTTxdKw03Aa0goXlZhnd-->🎞️</button>
+              <div class="basketWarn" id="basketWarn"><!--pnid:bYtum8cNb1Z0jJy5Nt6f3h-->🧺 满仓</div>
+              <div class="animHud" id="animHud"><!--pnid:BTGbaIo7C8ucQ5dCmksWSh-->自动垂钓中…</div>
+              <div class="pixelOff" id="pixelOff"><!--pnid:XUmHPcSZD5DVu1fWn8b5fY-->动画已关闭<span><!--pnid:VUrEZ0FLagmDl05iSaen8A-->仅渲染静态场景图 · 适合摸鱼</span></div>
             </div>
           </div>
           <div class="logBox" id="logBox"></div>
@@ -432,14 +488,14 @@ header{
       </div>
     </section>
 
-    <!-- 右侧 -->
+    <!--pnid:c4j1z9pxSTnrd4uXAVC42I--><!-- 右侧 -->
     <aside class="col col-right" id="colR">
       <div class="tabs" id="tabsR"></div>
       <div class="scroll" id="paneR"></div>
     </aside>
   </div>
 </div>
-</div><!-- /#gameRoot -->
+</div><!--pnid:2x5mjEhIWKXzeBSuFGUIfH--><!-- /#gameRoot -->
 
 <div class="scrim" id="scrim"></div>
 <div class="mask" id="mask"><div class="modal" id="modal"></div></div>
@@ -647,30 +703,189 @@ const SPOT_ORDER = ['stream','canyon','greatriver','thousand','marsh','estuary',
 
 /* ---------------- 装备 ---------------- */
 const SLOTS = [
-  {id:'rod',  name:'鱼竿',  ico:'🎣', act:'核心输出', upName:'提竿速度',  desc:'提升上钩速度、减少空钩率，高阶鱼竿解锁深层水域。'},
-  {id:'line', name:'鱼线',  ico:'🧵', act:'深度加成', upName:'垂钓深度',  desc:'提升垂钓深度，深度越高稀有/传说鱼刷新概率越高。'},
-  {id:'float',name:'鱼漂',  ico:'🔴', act:'暴击加成', upName:'暴击概率',  desc:'提升暴击上钩概率，暴击可双倍鱼获、双倍资源。'},
-  {id:'basket',name:'鱼篓', ico:'🧺', act:'容量加成', upName:'鱼篓容量',  desc:'提升离线挂机存储上限，延长满仓时间。'},
-  {id:'suit', name:'钓手服饰',ico:'👕',act:'全域增益', upName:'资源获取',  desc:'提升所有资源获取量、打窝效果持续时长。'},
-  {id:'glove',name:'防滑手套',ico:'🧤',act:'特殊增益', upName:'巨物捕获',  desc:'降低巨物脱钩率，提升高阶鱼种捕获成功率。'},
+  {id:'rod',  name:'鱼竿',  ico:'🎣', act:'巨物对抗', desc:'白字提供上钩速度。巨物拉扯的正面承受部位，磨损最快。'},
+  {id:'line', name:'鱼线',  ico:'🧵', act:'拉力稳定', desc:'白字提供垂钓深度。深度不足会压制稀有及以上鱼种。'},
+  {id:'float',name:'鱼漂',  ico:'🪷', act:'稀有灵敏', desc:'白字提供暴击概率。掌控稀有鱼信号与打窝感知。'},
+  {id:'basket',name:'鱼篓', ico:'🧺', act:'容量资源', desc:'白字提供鱼篓容量。决定挂机能囤多少鱼获。'},
+  {id:'suit', name:'钓手服饰',ico:'👕',act:'打窝续航', desc:'白字提供资源获取。打窝续航与离线窝点保护来源。'},
+  {id:'glove',name:'防滑手套',ico:'🧤',act:'巨物控制', desc:'白字提供巨物捕获。专治大鱼洗鳃脱钩。'},
 ];
+/* 装备品质：words=词条条数（传说含 1 条传说专属代价词缀），dur=基础耐久上限 */
 const EQ_RARITY = {
-  common: {name:'普通', maxLv:21, words:0, cls:'common'},
-  good:   {name:'精良', maxLv:31, words:0, cls:'good'},
-  rare:   {name:'稀有', maxLv:41, words:1, cls:'rare'},
-  epic:   {name:'史诗', maxLv:51, words:2, cls:'epic'},
-  legend: {name:'传说', maxLv:61, words:2, cls:'legend'},
-  mystic: {name:'鸿蒙', maxLv:71, words:3, cls:'mystic'},
+  common:{name:'普通', cls:'common', words:1, dur:110},
+  good:  {name:'优良', cls:'good',   words:2, dur:130},
+  rare:  {name:'稀有', cls:'rare',   words:3, dur:155},
+  epic:  {name:'史诗', cls:'epic',   words:3, dur:180},
+  legend:{name:'传说', cls:'legend', words:3, dur:210},
 };
-const EQ_WORDS = [
-  {id:'speed', name:'疾风·上钩速度',  suffix:'%',  base:4,  per:0.9, stat:'speed',   desc:'上钩速度加成'},
-  {id:'rareUp',name:'引灵·稀有爆率',  suffix:'%',  base:6,  per:1.3, stat:'rareUp',  desc:'稀有及以上出货率加成'},
-  {id:'nestT', name:'聚香·打窝时长',  suffix:'%',  base:8,  per:1.6, stat:'nestT',   desc:'打窝效果持续时长'},
-  {id:'crit',  name:'天运·暴击几率',  suffix:'%',  base:3,  per:0.7, stat:'crit',    desc:'暴击上钩概率'},
-  {id:'offline',name:'守夜·离线收益', suffix:'%',  base:10, per:2.0, stat:'offline', desc:'离线挂机收益加成'},
-  {id:'big',   name:'缚龙·巨物捕获',  suffix:'%',  base:5,  per:1.1, stat:'big',     desc:'巨物捕获成功率'},
-  {id:'depth', name:'探渊·垂钓深度',  suffix:'',   base:1,  per:0.16,stat:'depth',   desc:'垂钓深度附加'},
+const EQ_ORDER = ['common','good','rare','epic','legend'];
+/* 白字基础属性（耐久归零后仍保留的部分），随品质提升 */
+function slotBase(slotId, rarity){
+  const t = EQ_ORDER.indexOf(rarity);
+  const B = {
+    rod:    {speed:    5 + t*5},
+    line:   {depth:    2 + t*5},
+    float:  {crit:     2 + t*2},
+    basket: {capacity: 25 + t*55},
+    suit:   {resource: 3 + t*3},
+    glove:  {big:      3 + t*3},
+  };
+  return B[slotId] || {};
+}
+/* 综合属性面板（10 项）：元信息 */
+const STAT_META = {
+  speed:{name:'上钩速度', unit:'%'}, depth:{name:'垂钓深度', unit:''},
+  crit:{name:'暴击概率', unit:'%'},  capacity:{name:'鱼篓容量', unit:''},
+  resource:{name:'资源获取', unit:'%'}, big:{name:'巨物捕获', unit:'%'},
+  rareUp:{name:'稀有爆率', unit:'%'}, nestT:{name:'打窝时长', unit:'%'},
+  lineResist:{name:'断线抗性', unit:'%'}, hookResist:{name:'脱钩抵抗', unit:'%'},
+  /* 以下为辅助项，不在主面板展示 */
+  nestDecay:{name:'打窝衰减', unit:'%'}, baitBurn:{name:'窝料消耗速度', unit:'%'},
+  nestRange:{name:'打窝感知范围', unit:'%'}, rareKeep:{name:'稀有鱼保存概率', unit:'%'},
+  offlineNest:{name:'离线窝点保护', unit:'%'}, wearUp:{name:'大鱼磨损加剧', unit:'%'},
+  naturalWear:{name:'自然损耗', unit:'%'}, bigDmgRed:{name:'巨物拉扯减伤', unit:'%'},
+  normEscape:{name:'普通鱼脱钩概率', unit:'%'}, lineBreakUp:{name:'断线概率', unit:'%'},
+  durMax:{name:'耐久上限', unit:''}, durMaxPct:{name:'耐久上限', unit:'%'}, wordMul:{name:'全部词条强度', unit:'%'},
+};
+const PANEL_STATS = ['speed','depth','crit','capacity','resource','big','rareUp','nestT','lineResist','hookResist'];
+/* 百分比型属性：eqStats 内部按「百分数」累加，出口统一除以 100 变回小数 */
+const PCT_STATS = ['speed','crit','resource','big','rareUp','nestT','lineResist','hookResist',
+  'nestDecay','baitBurn','nestRange','rareKeep','offlineNest','wearUp','naturalWear','bigDmgRed',
+  'normEscape','lineBreakUp'];
+
+/* 分部位词条池：effs 内 {stat, lo, hi, unit}，lo===hi 表示固定值 */
+const AFFIX_POOL = {
+  rod: {
+    pos:[
+      {id:'rod_p1', name:'上钩速度',     effs:[{stat:'speed',      lo:6,  hi:14, unit:'%'}]},
+      {id:'rod_p2', name:'巨物捕获',     effs:[{stat:'big',        lo:5,  hi:12, unit:'%'}]},
+      {id:'rod_p3', name:'脱钩抵抗',     effs:[{stat:'hookResist', lo:8,  hi:18, unit:'%'}]},
+      {id:'rod_p4', name:'耐久上限',     effs:[{stat:'durMax',     lo:10, hi:24, unit:''}]},
+      {id:'rod_p5', name:'巨物拉扯减伤', effs:[{stat:'bigDmgRed',  lo:8,  hi:16, unit:'%'}]},
+    ],
+    neg:[
+      {id:'rod_n1', name:'垂钓深度',       effs:[{stat:'depth',      lo:-2, hi:-1, unit:''}]},
+      {id:'rod_n2', name:'上钩速度',       effs:[{stat:'speed',      lo:-11,hi:-5, unit:'%'}]},
+      {id:'rod_n3', name:'普通鱼脱钩概率', effs:[{stat:'normEscape', lo:6,  hi:13, unit:'%'}]},
+      {id:'rod_n4', name:'大鱼磨损加剧',   effs:[{stat:'wearUp',     lo:15, hi:28, unit:'%'}]},
+    ]
+  },
+  line: {
+    pos:[
+      {id:'line_p1', name:'暴击概率', effs:[{stat:'crit',       lo:3,  hi:9,  unit:'%'}]},
+      {id:'line_p2', name:'耐久上限', effs:[{stat:'durMax',     lo:12, hi:28, unit:''}]},
+      {id:'line_p3', name:'断线抗性', effs:[{stat:'lineResist', lo:10, hi:22, unit:'%'}]},
+      {id:'line_p4', name:'巨物捕获', effs:[{stat:'big',        lo:4,  hi:9,  unit:'%'}]},
+      {id:'line_p5', name:'资源获取', effs:[{stat:'resource',   lo:4,  hi:10, unit:'%'}]},
+    ],
+    neg:[
+      {id:'line_n1', name:'暴击概率', effs:[{stat:'crit',        lo:-8, hi:-3, unit:'%'}]},
+      {id:'line_n2', name:'自然损耗', effs:[{stat:'naturalWear', lo:12, hi:24, unit:'%'}]},
+      {id:'line_n3', name:'垂钓深度', effs:[{stat:'depth',       lo:-1, hi:-1, unit:''}]},
+      {id:'line_n4', name:'上钩速度', effs:[{stat:'speed',       lo:-9, hi:-4, unit:'%'}]},
+    ]
+  },
+  float: {
+    pos:[
+      {id:'float_p1', name:'稀有爆率',     effs:[{stat:'rareUp',    lo:5,  hi:13, unit:'%'}]},
+      {id:'float_p2', name:'垂钓深度',     effs:[{stat:'depth',     lo:1,  hi:2,  unit:''}]},
+      {id:'float_p3', name:'上钩速度',     effs:[{stat:'speed',     lo:5,  hi:13, unit:'%'}]},
+      {id:'float_p4', name:'暴击概率',     effs:[{stat:'crit',      lo:3,  hi:7,  unit:'%'}]},
+      {id:'float_p5', name:'打窝感知范围', effs:[{stat:'nestRange', lo:12, hi:26, unit:'%'}]},
+    ],
+    neg:[
+      {id:'float_n1', name:'上钩速度',     effs:[{stat:'speed',    lo:-12, hi:-6, unit:'%'}]},
+      {id:'float_n2', name:'稀有爆率',     effs:[{stat:'rareUp',   lo:-9,  hi:-4, unit:'%'}]},
+      {id:'float_n3', name:'窝料消耗速度', effs:[{stat:'baitBurn', lo:10,  hi:22, unit:'%'}]},
+      {id:'float_n4', name:'巨物捕获',     effs:[{stat:'big',      lo:-7,  hi:-3, unit:'%'}]},
+    ]
+  },
+  basket: {
+    pos:[
+      {id:'basket_p1', name:'鱼篓容量',     effs:[{stat:'capacity',  lo:15, hi:42, unit:''}]},
+      {id:'basket_p2', name:'资源获取',     effs:[{stat:'resource',  lo:6,  hi:15, unit:'%'}]},
+      {id:'basket_p3', name:'稀有鱼保存概率',effs:[{stat:'rareKeep',  lo:8,  hi:20, unit:'%'}]},
+      {id:'basket_p4', name:'打窝时长',     effs:[{stat:'nestT',     lo:8,  hi:17, unit:'%'}]},
+      {id:'basket_p5', name:'耐久上限',     effs:[{stat:'durMax',    lo:8,  hi:20, unit:''}]},
+    ],
+    neg:[
+      {id:'basket_n1', name:'鱼篓容量', effs:[{stat:'capacity', lo:-22, hi:-10, unit:''}]},
+      {id:'basket_n2', name:'资源获取', effs:[{stat:'resource', lo:-11, hi:-5,  unit:'%'}]},
+      {id:'basket_n3', name:'上钩速度', effs:[{stat:'speed',    lo:-10, hi:-4,  unit:'%'}]},
+      {id:'basket_n4', name:'巨物捕获', effs:[{stat:'big',      lo:-8,  hi:-3,  unit:'%'}]},
+    ]
+  },
+  suit: {
+    pos:[
+      {id:'suit_p1', name:'打窝时长',     effs:[{stat:'nestT',       lo:10, hi:24, unit:'%'}]},
+      {id:'suit_p2', name:'打窝衰减',     effs:[{stat:'nestDecay',   lo:-20,hi:-8, unit:'%'}]},
+      {id:'suit_p3', name:'资源获取',     effs:[{stat:'resource',    lo:5,  hi:12, unit:'%'}]},
+      {id:'suit_p4', name:'离线窝点保护', effs:[{stat:'offlineNest', lo:10, hi:22, unit:'%'}]},
+      {id:'suit_p5', name:'耐久上限',     effs:[{stat:'durMax',      lo:10, hi:22, unit:''}]},
+    ],
+    neg:[
+      {id:'suit_n1', name:'打窝衰减', effs:[{stat:'nestDecay', lo:10, hi:22, unit:'%'}]},
+      {id:'suit_n2', name:'巨物捕获', effs:[{stat:'big',       lo:-9, hi:-4, unit:'%'}]},
+      {id:'suit_n3', name:'上钩速度', effs:[{stat:'speed',     lo:-11,hi:-5, unit:'%'}]},
+      {id:'suit_n4', name:'稀有爆率', effs:[{stat:'rareUp',    lo:-8, hi:-4, unit:'%'}]},
+    ]
+  },
+  glove: {
+    pos:[
+      {id:'glove_p1', name:'巨物捕获',     effs:[{stat:'big',       lo:5,  hi:12, unit:'%'}]},
+      {id:'glove_p2', name:'暴击概率',     effs:[{stat:'crit',      lo:4,  hi:10, unit:'%'}]},
+      {id:'glove_p3', name:'上钩速度',     effs:[{stat:'speed',     lo:4,  hi:11, unit:'%'}]},
+      {id:'glove_p4', name:'断线抗性',     effs:[{stat:'lineResist',lo:8,  hi:18, unit:'%'}]},
+      {id:'glove_p5', name:'巨物拉扯减伤', effs:[{stat:'bigDmgRed', lo:10, hi:22, unit:'%'}]},
+    ],
+    neg:[
+      {id:'glove_n1', name:'暴击概率',     effs:[{stat:'crit',      lo:-9, hi:-4, unit:'%'}]},
+      {id:'glove_n2', name:'大鱼磨损加剧', effs:[{stat:'wearUp',    lo:12, hi:26, unit:'%'}]},
+      {id:'glove_n3', name:'资源获取',     effs:[{stat:'resource',  lo:-10,hi:-5, unit:'%'}]},
+      {id:'glove_n4', name:'垂钓深度',     effs:[{stat:'depth',     lo:-1, hi:-1, unit:''}]},
+    ]
+  },
+};
+/* 传说专属代价词缀（仅传说装备随机出，收益极高、副作用极大） */
+const LEGEND_AFFIX = [
+  {id:'L1', name:'巨物之魂', effs:[{stat:'big',       v:18, unit:'%'},{stat:'speed',   v:-15, unit:'%'}]},
+  {id:'L2', name:'深海猎手', effs:[{stat:'rareUp',    v:16, unit:'%'},{stat:'capacity',v:-20, unit:''}]},
+  {id:'L3', name:'狂暴钓线', effs:[{stat:'crit',      v:14, unit:'%'},{stat:'lineBreakUp',v:18, unit:'%'}]},
+  {id:'L4', name:'永动浮标', effs:[{stat:'speed',     v:16, unit:'%'},{stat:'baitBurn', v:28, unit:'%'}]},
+  {id:'L5', name:'铁腕手套', effs:[{stat:'hookResist',v:20, unit:'%'},{stat:'resource',v:-12, unit:'%'}]},
+  {id:'L6', name:'古老鱼篓', effs:[{stat:'resource',  v:18, unit:'%'},{stat:'big',     v:-10, unit:'%'}]},
+  {id:'L7', name:'浪人服饰', effs:[{stat:'nestT',     v:20, unit:'%'},{stat:'nestDecay',v:18, unit:'%'}]},
+  {id:'L8', name:'碎裂神器', effs:[{stat:'wordMul',   v:10, unit:'%'},{stat:'durMaxPct',v:-40, unit:'%'}]},
 ];
+
+/* 巨物 / 传说鱼造成的一次性耐久损伤基数 */
+const BIG_WEAR = {rare:3, epic:7, legend:15, mystic:26};
+/* 祈愿资源与抽卡配置 */
+const RES_META = {
+  catch:  {name:'普通鱼获', ico:'🐟', desc:'出售普通鱼类得到，用于「平稳打捞」'},
+  scale:  {name:'珍贵鱼鳞', ico:'🐠', desc:'稀有、巨物鱼掉落，用于「深海祈愿」'},
+  essence:{name:'窝料精华', ico:'🫧', desc:'钓获巨物概率产出，用于「深海祈愿」'},
+  repair: {name:'维修材料', ico:'🔧', desc:'修复装备耐久的消耗品'},
+};
+const WISH_CFG = {
+  calm: {
+    name:'平稳打捞', ico:'🛶', risk:0,
+    cost1:{catch:40}, cost5:{catch:200},
+    pool:[['common',60],['good',30],['rare',10]],
+    pity:{rare:10},
+    tag:'安全模式',
+    desc:'不出史诗/传说，无任何惩罚风险。前期过渡主力。',
+  },
+  deep: {
+    name:'深海祈愿', ico:'🌊', risk:0.20,
+    cost1:{scale:8, essence:3}, cost5:{scale:40, essence:15},
+    pool:[['good',42],['rare',32],['epic',20],['legend',6]],
+    pity:{epic:30, legend:80},
+    tag:'高风险高回报',
+    desc:'产出史诗/传说。每次有 20% 触发涡流反噬，会重创一件在穿装备。',
+  },
+};
+const REPAIR_COST = {common:1, good:2, rare:3, epic:5, legend:8};
 
 /* ---------------- 窝料 ---------------- */
 const BAITS = [
@@ -706,18 +921,28 @@ let saveFailCount = 0;
 
 function defaultEquip(){
   const o = {};
-  SLOTS.forEach(s=>{ o[s.id] = {rarity:'common', lv:1, enhance:0, words:[]}; });
+  SLOTS.forEach(s=>{ o[s.id] = null; });
+  return o;
+}
+/** 新手初始 6 件普通装备（拾取绑定，词条随机且永久固定） */
+function starterEquip(){
+  const o = {};
+  SLOTS.forEach(s=>{ o[s.id] = makeEquip(s.id, 'common'); });
   return o;
 }
 function newSave(){
   return {
-    v:1,
+    v:2,
     name:'', created:Date.now(), lastTick:Date.now(), lastOnline:Date.now(),
     gold:2000, ess:0,
     basket: {},                 // 未售出的鱼 {fishId:{fish,n}}
     basketLimitBase: 60,
     spot:'stream',
-    equip: defaultEquip(),
+    equip: starterEquip(),
+    eqBag: [],                  // 装备背包（未穿戴）
+    res: {catch:0, scale:0, essence:0, repair:2},   // 祈愿 / 维修资源
+    wish: {calm:0, deepEpic:0, deepLegend:0},       // 保底计数
+    cutGuard: 0.20,                                 // 巨物断线保全阈值（0=总是搏鱼）
     lv:1, exp:0,
     nest: {baitId:null, endAt:0, startAt:0, target:null, tier:0, castAt:0},
     nestCasts:0,
@@ -749,9 +974,22 @@ function hydrate(d){
   s.food = Object.assign(base.food, d.food||{});
   s.freeBaits = Object.assign(base.freeBaits, d.freeBaits||{});
   s.nest = Object.assign(base.nest, d.nest||{});
+  s.res = Object.assign(base.res, d.res||{});
+  s.wish = Object.assign(base.wish, d.wish||{});
+  s.eqBag = Array.isArray(d.eqBag) ? d.eqBag.filter(x=>x && x.uid && x.slot) : [];
+  // 装备迁移：旧结构（无 uid）整体重铸为新版装备实例
   s.equip = Object.assign(defaultEquip(), d.equip||{});
-  SLOTS.forEach(sl=>{ if(!s.equip[sl.id]) s.equip[sl.id]={rarity:'common',lv:1,enhance:0,words:[]};
-    s.equip[sl.id].words = s.equip[sl.id].words||[]; });
+  SLOTS.forEach(sl=>{
+    const e = s.equip[sl.id];
+    if(!e || !e.uid){
+      const slotOk = SLOTS.find(x=>x.id===sl.id);
+      s.equip[sl.id] = slotOk ? makeEquip(sl.id, (e && EQ_ORDER.indexOf(e.rarity)>=0) ? e.rarity : 'common') : null;
+    }else{
+      e.slot = sl.id;
+      e.words = Array.isArray(e.words) ? e.words : [];
+      e.dur = typeof e.dur === 'number' ? e.dur : EQ_RARITY[e.rarity] ? EQ_RARITY[e.rarity].dur : 80;
+    }
+  });
   if(s.daily.date !== todayStr()){ s.daily = base.daily; }
   if(!s.basket || typeof s.basket !== 'object') s.basket = {};
   return s;
@@ -855,53 +1093,146 @@ function makeFish(r){
 }
 
 /* ---------------- 属性计算 ---------------- */
-function eqStats(){
-  const st = {speed:0, rareUp:0, nestT:0, crit:0, offline:0, big:0, depth:0,
-              atk:0, capacity:0, resource:0};
-  SLOTS.forEach(sl=>{
-    const e = S.equip[sl.id]; if(!e) return;
-    const rc = EQ_RARITY[e.rarity]; const lv = e.lv;
-    const tier = RORDER.indexOf(e.rarity); // 0..5
-    const lvMul = 1 + (lv-1)*0.052;
-    // 各部位主属性
-    if(sl.id==='rod')    st.speed   += (0.10 + tier*0.085) * lvMul + e.enhance*0.022;
-    if(sl.id==='line')   st.depth   += Math.round((1 + tier*2.2) * lvMul) + Math.floor(e.enhance/4);
-    if(sl.id==='float')  st.crit    += (0.035 + tier*0.022) * lvMul + e.enhance*0.004;
-    if(sl.id==='basket') st.capacity+= Math.round((28 + tier*118) * lvMul) + e.enhance*7;
-    if(sl.id==='suit')   st.resource+= (0.07 + tier*0.058) * lvMul + e.enhance*0.016;
-    if(sl.id==='glove')  st.big     += (0.045 + tier*0.032) * lvMul + e.enhance*0.010;
-    // 词条
-    (e.words||[]).forEach(w=>{
-      const def = EQ_WORDS.find(x=>x.id===w.id); if(!def) return;
-      const v = def.base + def.per*w.roll + def.per*e.enhance*0.55;
-      if(def.stat==='depth') st.depth += Math.round(v);
-      else st[def.stat] = (st[def.stat]||0) + v/100;
+/* ---------- 装备实例工具 ---------- */
+let EQ_UID = 1;
+function findAffixDef(id, slotId){
+  const P = AFFIX_POOL[slotId];
+  if(P){
+    const a = P.pos.find(x=>x.id===id); if(a) return {def:a, neg:false};
+    const b = P.neg.find(x=>x.id===id); if(b) return {def:b, neg:true};
+  }
+  const l = LEGEND_AFFIX.find(x=>x.id===id);
+  return l ? {def:l, neg:false, legend:true} : null;
+}
+function rollEffVal(e){
+  const lo = e.lo != null ? e.lo : e.v;
+  const hi = e.hi != null ? e.hi : e.v;
+  if(lo === hi) return lo;
+  return +(lo + Math.random()*(hi-lo)).toFixed(1);
+}
+/** 按品质规则生成词条（正负随机、不冲突、数值区间内保留 1 位小数） */
+function pickAffixes(slotId, rarity, opts){
+  opts = opts || {};
+  const P = AFFIX_POOL[slotId]; if(!P) return [];
+  const picked = [], used = {};
+  const negP = base => Math.random() < (opts.negCut ? base*0.45 : base);
+  function take(pool){
+    const avail = pool.filter(d=>!used[d.id]);
+    if(!avail.length) return false;
+    const d = avail[Math.floor(Math.random()*avail.length)];
+    used[d.id] = 1;
+    picked.push({id:d.id, vals:d.effs.map(rollEffVal)});
+    return true;
+  }
+  if(rarity === 'common'){
+    take(P.pos);                                     // 1 条，仅正向
+  }else if(rarity === 'good'){
+    take(P.pos);                                     // 2 条：2 正 / 1 正 1 负
+    if(negP(0.5)) take(P.neg); else take(P.pos);
+  }else if(rarity === 'rare'){
+    take(P.pos);                                     // 2~3 条，正负混合
+    if(negP(0.8)) take(P.neg); else take(P.pos);
+    if(Math.random()<0.5){ if(negP(0.6)) take(P.neg); else take(P.pos); }
+  }else if(rarity === 'epic'){
+    take(P.pos); take(P.pos); take(P.neg);           // 3 条：强增益 + 明显负面
+  }else if(rarity === 'legend'){
+    const L = LEGEND_AFFIX[Math.floor(Math.random()*LEGEND_AFFIX.length)];
+    used[L.id] = 1;                                  // 3 条：含 1 条传说专属代价词缀
+    picked.push({id:L.id, vals:L.effs.map(rollEffVal)});
+    take(P.pos);
+    if(negP(0.65)) take(P.neg); else take(P.pos);
+  }
+  return picked;
+}
+function makeEquip(slotId, rarity, opts){
+  const r = EQ_RARITY[rarity] ? rarity : 'common';
+  return {
+    uid:'e'+Date.now().toString(36)+'_'+(EQ_UID++),
+    slot:slotId, rarity:r,
+    dur:EQ_RARITY[r].dur,
+    words:pickAffixes(slotId, r, opts),
+    bound:true, t:Date.now(),
+  };
+}
+/** 词条强度倍率（碎裂神器：全部词条强度 +10%） */
+function wordMulOf(it){
+  let m = 0;
+  (it.words||[]).forEach(w=>{
+    const f = findAffixDef(w.id, it.slot); if(!f) return;
+    f.def.effs.forEach((e,i)=>{ if(e.stat==='wordMul') m += (w.vals[i]||0); });
+  });
+  return m;
+}
+/** 装备耐久上限：含「耐久上限」词条；耐久归零时词条失效，只剩基础值 */
+function itemDurMax(it){
+  const base = EQ_RARITY[it.rarity] ? EQ_RARITY[it.rarity].dur : 80;
+  if(!(it.dur > 0)) return base;
+  const mul = 1 + wordMulOf(it)/100;
+  let flat = 0, pct = 0;
+  (it.words||[]).forEach(w=>{
+    const f = findAffixDef(w.id, it.slot); if(!f) return;
+    f.def.effs.forEach((e,i)=>{
+      const v = (w.vals[i]||0) * (e.stat==='wordMul' ? 1 : mul);
+      if(e.stat==='durMax') flat += v;
+      else if(e.stat==='durMaxPct') pct += v;
     });
   });
-  st.depth = Math.max(1, Math.min(99, st.depth));
+  return Math.max(10, Math.round(base*(1+pct/100) + flat));
+}
+/** 把一件装备的生效词条累加进属性表（白字由调用方单独加） */
+function addItemWords(st, it){
+  const mul = 1 + wordMulOf(it)/100;
+  (it.words||[]).forEach(w=>{
+    const f = findAffixDef(w.id, it.slot); if(!f) return;
+    f.def.effs.forEach((e,i)=>{
+      if(e.stat==='durMax' || e.stat==='durMaxPct' || e.stat==='wordMul') return; // 本装备局部生效
+      st[e.stat] = (st[e.stat]||0) + (w.vals[i]||0) * mul;
+    });
+  });
+}
+
+/* ---------- 综合属性：全部装备词条叠加 ---------- */
+function eqStats(){
+  const st = {};
+  for(const k in STAT_META) st[k] = 0;
+  st.atk = 0;
+  SLOTS.forEach(sl=>{
+    const it = S.equip[sl.id]; if(!it) return;
+    const b = slotBase(sl.id, it.rarity);          // 白字：耐久归零也保留
+    for(const k in b) st[k] = (st[k]||0) + b[k];
+    if(it.dur > 0) addItemWords(st, it);           // 词条：耐久 > 0 才生效
+  });
+  PCT_STATS.forEach(k=>{ st[k] = (st[k]||0)/100; });
+  st.offline = st.offlineNest;                     // 离线收益沿用「离线窝点保护」
+  st.depth = Math.max(1, Math.min(99, Math.round(st.depth)));
+  st.capacity = Math.round(st.capacity);
   return st;
 }
+/** 换上/卸下装备的属性增减对比（返回 10 项面板属性的差值，百分数为「点」） */
+function equipDelta(slotId, nextItem){
+  const cur = S.equip[slotId] || null;
+  const before = eqStats();
+  S.equip[slotId] = nextItem || null;
+  const after = eqStats();
+  S.equip[slotId] = cur;
+  const out = [];
+  PANEL_STATS.forEach(k=>{
+    const d = (after[k]||0) - (before[k]||0);
+    if(Math.abs(d) > 1e-9) out.push({key:k, name:STAT_META[k].name, unit:STAT_META[k].unit, delta:+d.toFixed(4)});
+  });
+  return out;
+}
+/** 套装羁绊已移除：保留零值返回以兼容历史调用点 */
 function setBonus(){
-  const cnt = {};
-  SLOTS.forEach(sl=>{ const r=S.equip[sl.id]?.rarity||'common'; cnt[r]=(cnt[r]||0)+1; });
-  let best = null, bestOrder = -1;
-  for(const r in cnt){ if(cnt[r]>=3 && RORDER.indexOf(r)>bestOrder){ bestOrder=RORDER.indexOf(r); best=r; } }
-  if(!best) return {count:0, rarity:null, speed:0, nestDecay:0, nestT:0, legendUp:0, offlineSafe:false, tier:0};
-  const n = cnt[best]; const tier = bestOrder;
-  return {
-    count:n, rarity:best, tier,
-    speed: n>=6 ? 0.30+tier*0.03 : 0.15+tier*0.02,
-    nestDecay: n>=6 ? 0.40 : 0.20,
-    nestT: n>=6 ? 0.30 : 0,
-    legendUp: n>=6 ? 0.55+tier*0.09 : 0,
-    offlineSafe: n>=6,
-  };
+  return {count:0, rarity:null, speed:0, nestDecay:0, nestT:0, legendUp:0, offlineSafe:false, tier:0};
 }
 function nestDuration(baitId){
   const b = BAITS.find(x=>x.id===baitId); if(!b) return 0;
   const st = eqStats(), sb = setBonus();
   const decayMul = spotMech().baitDecayMul != null ? spotMech().baitDecayMul : 1;   // 水流/低温加速窝料消散
-  return b.dur * 1000 * (1 + st.nestT + sb.nestT) * decayMul;
+  // 「窝料消耗速度」词条加快消耗 → 打窝时长缩短
+  const burn = Math.max(0.4, 1 - (st.baitBurn||0));
+  return b.dur * 1000 * (1 + st.nestT + sb.nestT) * decayMul * burn;
 }
 /* 当前窝点剩余与强度倍率 */
 function nestState(){
@@ -919,12 +1250,11 @@ function nestState(){
   else{
     const k = (elapsed-burstMs)/Math.max(1,(total-burstMs));
     const sb = setBonus();
-    const decay = 1 - (1-sb.nestDecay)*0; // 套装降低衰减：把最低衰减抬升
-    // 基础衰减到 30%，套装使衰减速度降低
-    const floor = 0.30 + sb.nestDecay*0.35;
+    // 「打窝衰减」词条：正值让衰减更快，负值（增益）让衰减更慢
+    const eff = Math.max(-0.45, Math.min(0.45, sb.nestDecay - (eqStats().nestDecay||0)));
+    const floor = Math.max(0.08, 0.30 + eff*0.35);
     const raw = 1 - (1-floor)*k;
-    // 套装再抬高一档
-    mul = Math.min(1, raw + sb.nestDecay*0.12*(1-k));
+    mul = Math.min(1, raw + eff*0.12*(1-k));
     phase = mul>0.7 ? '稳窝期' : (mul>0.45 ? '衰减期' : '尾声');
   }
   return {active:true, mul, remain:n.endAt-now, pct, bait:BAITS.find(b=>b.id===n.baitId), phase, burst: elapsed<=burstMs, target:n.target};
@@ -970,6 +1300,11 @@ function rollFish(){
     w.epic   *= 1 + (bait.epicMul-1)*speedScale(ns);
     w.legend *= 1 + (bait.legendMul-1)*speedScale(ns);
     if(bait.mysticAdd>0){ w.mystic = Math.max(w.mystic, 0.6) * (1 + bait.mysticAdd*20*speedScale(ns)); }
+  }
+  // 打窝感知范围（鱼漂增益）：放大窝点对稀有及以上鱼种的吸引力
+  if(ns.active && st.nestRange > 0){
+    const g = 1 + st.nestRange*0.35;
+    ['rare','epic','legend','mystic'].forEach(r=> w[r] *= g);
   }
   // 精准打窝：压制非目标品级
   if(ns.active && ns.target){
@@ -1161,17 +1496,104 @@ function doCast(){
   // 古陨巨湖：神隐鱼咬钩触发超长耐力拉锯（强制巨物判定 + 脱钩率大涨）
   const mysticTug = mech.mysticTug && gained.indexOf('mystic') >= 0;
   const bigForced = mysticTug ? true : isBig;
-  let escapeRate = bigForced ? Math.max(0.02, 0.42 - st.big - (frenzy?0.2:0)) : 0;
+
+  // 本次最高品级 → 驱动像素动画分档与巨物磨损档位
+  let topR = 'common';
+  gained.forEach(r=>{ if(RARITY[r].order > RARITY[topR].order) topR = r; });
+
+  const ctx = {bigForced, mysticTug, gained, crit, frenzy, ns, mech, bait, st, sb, spot, topR};
+  // 主动断线保全：巨物咬钩 + 装备耐久告急 → 交给玩家决策
+  if(bigForced && cutGuardHit(topR)){ openCutChoice(ctx); return; }
+  resolveCast(ctx, false);
+}
+
+/* ---------- 巨物博弈：断线保全 / 强行搏鱼 ---------- */
+let CUT_CTX = null, CUT_TIMER = null;
+/** 最脆弱在穿装备的耐久比例 */
+function worstDurRatio(){
+  let worst = 1, name = '';
+  SLOTS.forEach(sl=>{
+    const e = S.equip[sl.id]; if(!e) return;
+    const mx = itemDurMax(e);
+    if(mx > 0 && e.dur/mx < worst){ worst = e.dur/mx; name = sl.name; }
+  });
+  return {ratio:worst, name:name};
+}
+function cutGuardHit(topR){
+  const th = (S.cutGuard == null ? 0.20 : S.cutGuard);
+  if(!(th > 0)) return false;
+  if(!(BIG_WEAR[topR] > 0)) return false;
+  return worstDurRatio().ratio <= th;
+}
+function setCutGuard(v){
+  S.cutGuard = v;
+  toast(v>0 ? '巨物保护阈值：耐久低于 '+Math.round(v*100)+'% 时提示断线' : '巨物保护已关闭，总是搏鱼','good');
+  renderAll(); save();
+}
+function openCutChoice(ctx){
+  const w = worstDurRatio();
+  const wear = BIG_WEAR[ctx.topR] || 4;
+  CUT_CTX = ctx;
+  S.auto = false;
+  openModal('⚠️ 巨物咬钩 · 装备耐久告急', `
+    <div class="card hl">
+      <div class="row"><b class="t-legend">一条 ${RARITY[ctx.topR].name}巨物咬钩了</b><span class="pill p-legend">拉力极高</span></div>
+      <div class="tiny" style="margin-top:6px">最脆弱装备：${w.name} 耐久仅剩 <b>${Math.round(w.ratio*100)}%</b>，此鱼预计造成 <b class="t-legend">${wear}</b> 点基础耐久损伤。</div>
+    </div>
+    <div class="riskNote">强行搏鱼：赢了拿大鱼，但装备可能直接被打到耐久归零、词条失效。<br>主动断线：立刻剪断子线保全装备，但这条大鱼直接丢失。</div>
+    <div class="hint" style="margin-top:6px">12 秒未决策将默认<b>强行搏鱼</b>并恢复挂机。</div>
+  `, '<button class="btn primary" onclick="resolvePendingCast(true)">✂️ 主动断线（保装备）</button><button class="btn gold" onclick="resolvePendingCast(false)">💪 强行搏鱼</button>');
+  clearTimeout(CUT_TIMER);
+  CUT_TIMER = setTimeout(()=>{
+    if(!CUT_CTX) return;
+    toast('⏱️ 未及时决策，默认强行搏鱼','bad');
+    resolvePendingCast(false);
+  }, 12000);
+}
+function resolvePendingCast(cut){
+  const ctx = CUT_CTX; CUT_CTX = null;
+  clearTimeout(CUT_TIMER); CUT_TIMER = null;
+  closeModal();
+  if(ctx) resolveCast(ctx, cut);
+  S.auto = true;
+  renderAll(); save();
+}
+/** 上钩后的统一结算（cut=true 表示玩家主动断线） */
+function resolveCast(ctx, cut){
+  const {bigForced, mysticTug, gained, crit, frenzy, ns, mech, bait, st, sb, spot, topR} = ctx;
+
+  // 主动断线：保全装备，直接丢失这条大鱼
+  if(cut){
+    pxEventLost(topR, 'break');
+    wearEquip(null);
+    pushLog('✂️ <b class="t-legend">主动断线！</b>你剪断子线保住了装备，这条'+RARITY[topR].name+'大鱼就此脱逃','log-bad');
+    checkBroken(); renderAll(); save();
+    return;
+  }
+  // 普通鱼脱钩（负面词条：普通鱼脱钩概率）
+  if(!bigForced && st.normEscape > 0 && Math.random() < st.normEscape){
+    pxEventLost(topR, 'shake');
+    wearEquip(null);
+    pushLog('😵 手上一滑，'+raritySpan(topR,'这口鱼')+' 在半空洗鳃脱钩（「普通鱼脱钩概率」词条作祟）','log-bad');
+    checkBroken(); renderAll(); save();
+    return;
+  }
+  // 巨物脱钩判定（脱钩抵抗降低脱钩率）
+  let escapeRate = bigForced ? Math.max(0.02, 0.42 - st.big - (st.hookResist||0) - (frenzy?0.2:0)) : 0;
   escapeRate += mech.breakAdd || 0;                     // 山涧细线磨石 / 远洋强流 / 峡湾诡异张力
   if(spotEventActive()==='abyss') escapeRate += (mech.abyssPulse ? mech.abyssPulse.breakAdd : 0);
   if(mysticTug) escapeRate = Math.max(escapeRate, 0.35);   // 超长拉锯
   if(bigForced && Math.random() < escapeRate){
-    const kind = Math.random() < 0.5 ? 'shake' : 'break';
+    // 断线抗性降低切线占比；「狂暴钓线」等代价词缀抬高切线概率
+    const pBreak = Math.max(0.05, Math.min(0.92, 0.5 - (st.lineResist||0) + (st.lineBreakUp||0)));
+    const kind = Math.random() < pBreak ? 'break' : 'shake';
     pxEventLost('legend', kind);
     if(mysticTug) pushLog('🌌 神隐鱼发起超长耐力拉锯，泄力器滋滋哀鸣——最终还是'+ (kind==='break'?'切线':'脱钩') +'了！星核沉回深渊', 'log-bad');
     else if(kind==='break') pushLog('咻！直接<b class="t-legend">切线</b>！大鱼带着鱼钩远走高飞！','log-bad');
-    else pushLog('哦豁！大鱼<b class="t-legend">洗鳃脱钩</b>，到嘴的鱼飞了，心痛！（防滑手套可降低脱钩率）','log-bad');
+    else pushLog('哦豁！大鱼<b class="t-legend">洗鳃脱钩</b>，到嘴的鱼飞了，心痛！（脱钩抵抗可降低该概率）','log-bad');
     ENV.stats_bigFail = (ENV.stats_bigFail||0)+1;
+    wearEquip(bigForced ? topR : null);
+    checkBroken(); renderAll(); save();
     return;
   }
   // 峡谷水库：咬钩大鱼向枯树根猛冲 → 挂底断子线
@@ -1179,17 +1601,32 @@ function doCast(){
     pxEventLost('legend','break');
     pushLog('🪵 巨物朝着枯树根猛冲，<b class="t-legend">挂底断子线</b>！煮熟的鸭子飞了','log-bad');
     ENV.stats_bigFail = (ENV.stats_bigFail||0)+1;
+    wearEquip(bigForced ? topR : null);
+    checkBroken(); renderAll(); save();
     return;
   }
+
+  // 耐久结算：鱼拉力越大磨损越高，传说/神隐造成大额一次性损伤
+  wearEquip(bigForced ? topR : null);
+  // 窝料精华：钓获巨物概率产出
+  if(bigForced && Math.random() < 0.40){
+    const n = 1 + Math.floor(Math.random()*3);
+    S.res.essence = (S.res.essence||0) + n;
+    pushLog('🫧 巨物体内析出 <b class="t-mystic">窝料精华 ×'+n+'</b>','log-tip');
+  }
+  // 巨物身上偶尔能拆出维修材料
+  if(bigForced && Math.random() < 0.25){
+    S.res.repair = (S.res.repair||0) + 1;
+    pushLog('🔧 从巨物钩伤处回收 <b class="t-good">维修材料 ×1</b>','log-tip');
+  }
+  // 垂钓直落：巨物 / 传说鱼低概率直接掉落装备（无反噬风险）
+  maybeDropEquip(topR);
 
   const resMul = 1 + st.resource + sb.speed*0.2;
   const spotMul = spot.rate;
   const satMul = (ENV.satietyUntil>Date.now()) ? (1 + ENV.satiety) : 1;
 
   let cap = basketLimit();
-  // 取本次最高品级 → 驱动像素动画分档
-  let topR = 'common';
-  gained.forEach(r=>{ if(RARITY[r].order > RARITY[topR].order) topR = r; });
   const topOrder = RARITY[topR].order;
   // 动画里展示的鱼=实际进篓的那条（同名同款），避免「钓上来的和看到的不一样」
   const showcase = makeFish(topR);
@@ -1240,6 +1677,7 @@ function doCast(){
   if(frenzy && Math.random()<0.30){
     pushLog('🔥 <b class="t-legend">闹窝暴击</b>中！连续上钩，绝不空钩', 'log-big');
   }
+  checkBroken();
   if(basketCount() >= cap){ pauseAuto('鱼篓已满'); }
 }
 
@@ -1401,20 +1839,40 @@ function pushChat(msg, fromNpc){
 /* ---------------- 售卖 / 资源 ---------------- */
 function sellAll(){
   let gold=0, ess=0, cnt=0;
+  let gotCatch=0, gotScale=0, gotRepair=0;
   const st = eqStats(), sb = setBonus();
   const mul = 1 + st.resource + sb.speed*0.15;
   for(const k in S.basket){
     const it = S.basket[k];
     const r = it.fish.rarity;
+    const o = RARITY[r].order;
     const g = Math.round(it.fish.price * it.n * mul);
     gold += g; cnt += it.n;
-    if(RARITY[r].order>=2) ess += Math.max(1, Math.round(it.n * (RARITY[r].order-1) * (1+st.resource*0.5)));
+    // 普通鱼获：出售普通鱼类得到
+    if(o <= 1) gotCatch += it.n * (o === 0 ? 2 : 1);
+    // 珍贵鱼鳞：稀有及以上 / 巨物鱼掉落
+    if(o >= 2){
+      ess += Math.max(1, Math.round(it.n * (o-1) * (1+st.resource*0.5)));
+      gotScale += it.n * (o-1) * 2;
+      // 稀有鱼保存概率：额外留存鳞片
+      if(Math.random() < Math.min(0.6, (st.rareKeep||0)*0.5)) gotScale += Math.round(it.n*0.5);
+      // 维修材料掉落
+      const rp = o >= 3 ? 0.30 : 0.15;
+      if(Math.random() < rp) gotRepair += 1;
+    }
   }
   if(cnt===0){ toast('鱼篓是空的','bad'); return; }
   S.gold += gold; S.ess += ess;
   S.stats.totalGold += gold; S.stats.totalEss += ess;
+  S.res.catch = (S.res.catch||0) + gotCatch;
+  S.res.scale = (S.res.scale||0) + gotScale;
+  S.res.repair = (S.res.repair||0) + gotRepair;
   S.basket = {};
-  pushLog('💰 售卖 '+cnt+' 条鱼获，获得 <b class="t-legend">'+fmt(gold)+'</b> 金币、<b class="t-mystic">'+fmt(ess)+'</b> 精华','log-big');
+  let tail = '';
+  if(gotCatch) tail += '、'+gotCatch+' 普通鱼获';
+  if(gotScale) tail += '、'+gotScale+' 珍贵鱼鳞';
+  if(gotRepair) tail += '、'+gotRepair+' 维修材料';
+  pushLog('💰 售卖 '+cnt+' 条鱼获，获得 <b class="t-legend">'+fmt(gold)+'</b> 金币、<b class="t-mystic">'+fmt(ess)+'</b> 精华'+tail,'log-big');
   toast('💰 +'+fmt(gold)+' 金币 / +'+fmt(ess)+' 精华','gold');
   if(!S.auto && basketCount()<basketLimit()){ S.auto=true; pushLog('▶️ 鱼篓已清空，自动挂机恢复','log-tip'); }
   renderAll(); save();
@@ -1433,97 +1891,354 @@ function sellOne(key){
   renderAll(); save();
 }
 
-/* ---------------- 装备操作 ---------------- */
-function upCost(e){
-  const tier = RORDER.indexOf(e.rarity);
-  return {
-    gold: Math.round((120 + tier*950) * Math.pow(1.16, e.lv-1)),
-    ess: e.lv>=15 ? Math.round((e.lv-14) * (tier+1) * 2.2) : 0
+/* ---------------- 装备：词条展示 / 穿脱 / 丢弃 / 维修 / 耐久 ---------------- */
+const BAG_LIMIT = 40;
+/** 词条渲染数据：{name, text, neg, legend} */
+function wordView(it){
+  return (it.words||[]).map(w=>{
+    const f = findAffixDef(w.id, it.slot);
+    if(!f) return {name:'未知词条', text:'—', neg:false, legend:false};
+    const parts = f.def.effs.map((e,i)=>{
+      const v = w.vals[i] != null ? w.vals[i] : (e.v||0);
+      const u = e.unit || (STAT_META[e.stat] && STAT_META[e.stat].unit) || '';
+      const num = (v>0?'+':'') + (Math.abs(v)%1===0 ? v.toFixed(0) : v.toFixed(1));
+      return STAT_META[e.stat].name + ' ' + num + u;
+    });
+    return {name:f.def.name, text:parts.join('，'), neg:f.neg, legend:!!f.legend, raw:f.def};
+  });
+}
+function eqFullName(it){
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  return EQ_RARITY[it.rarity].name + (sl ? sl.name : '');
+}
+function findOwned(uid){
+  if(!uid) return null;
+  for(const sl of SLOTS){
+    if(S.equip[sl.id] && S.equip[sl.id].uid === uid) return {item:S.equip[sl.id], where:'equip', slot:sl.id};
+  }
+  const i = S.eqBag.findIndex(x=>x.uid === uid);
+  if(i >= 0) return {item:S.eqBag[i], where:'bag', idx:i, slot:S.eqBag[i].slot};
+  return null;
+}
+function equipItem(uid){
+  const o = findOwned(uid);
+  if(!o || o.where !== 'bag'){ toast('该装备不在背包中','bad'); return; }
+  const it = o.item;
+  const old = S.equip[it.slot];
+  S.eqBag.splice(o.idx, 1);
+  S.equip[it.slot] = it;
+  if(old) S.eqBag.push(old);
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  pushLog('🎽 换上 <b class="t-'+EQ_RARITY[it.rarity].cls+'">'+eqFullName(it)+'</b>'+(old?'（原装备已放入背包）':''), 'log-tip');
+  toast('已换上 '+sl.name, 'good');
+  renderAll(); save();
+}
+function unequipSlot(slotId){
+  const it = S.equip[slotId];
+  if(!it){ toast('该部位没有装备','bad'); return; }
+  if(S.eqBag.length >= BAG_LIMIT){ toast('背包已满（'+BAG_LIMIT+'），请先丢弃无用装备','bad'); return; }
+  S.equip[slotId] = null;
+  S.eqBag.push(it);
+  const sl = SLOTS.find(s=>s.id===slotId);
+  toast('已卸下 '+sl.name,'good');
+  renderAll(); save();
+}
+function discardItem(uid){
+  const o = findOwned(uid);
+  if(!o) return;
+  const it = o.item;
+  const tag = EQ_RARITY[it.rarity].name + (SLOTS.find(s=>s.id===it.slot)||{name:''}).name;
+  const doIt = ()=>{
+    if(o.where==='bag') S.eqBag.splice(S.eqBag.findIndex(x=>x.uid===uid), 1);
+    else S.equip[it.slot] = null;
+    pushLog('🗑️ 丢弃 <b class="t-'+EQ_RARITY[it.rarity].cls+'">'+tag+'</b>（拾取绑定，无法交易）','log-sys');
+    toast('已丢弃 '+tag,'bad');
+    closeModal(); renderAll(); save();
   };
+  if(it.rarity==='epic' || it.rarity==='legend'){
+    openModal('确认丢弃？', '<div class="hint">即将丢弃 <b class="t-'+EQ_RARITY[it.rarity].cls+'">'+tag+'</b>。装备为拾取绑定，丢弃后无法找回，史诗/传说也不可交易。</div>',
+      '<button class="btn" onclick="closeModal()">取消</button><button class="btn gold" onclick="discardItemConfirm(\''+uid+'\')">确认丢弃</button>');
+    S._pendingDiscard = uid;
+  }else doIt();
 }
-function upgradeEquip(slot){
-  const e = S.equip[slot]; const rc = EQ_RARITY[e.rarity];
-  if(e.lv >= rc.maxLv){ toast('已达当前品级等级上限，请先进阶','bad'); return; }
-  const c = upCost(e);
-  if(S.gold < c.gold){ toast('金币不足（需 '+fmt(c.gold)+'）','bad'); return; }
-  if(c.ess && S.ess < c.ess){ toast('钓鱼精华不足（需 '+fmt(c.ess)+'）','bad'); return; }
-  S.gold -= c.gold; if(c.ess) S.ess -= c.ess;
-  e.lv++;
-  pushLog('🔧 '+SLOTS.find(s=>s.id===slot).name+' 升级至 <b class="t-good">Lv.'+e.lv+'</b>','log-tip');
+function discardItemConfirm(uid){
+  const o = findOwned(uid); if(!o) return;
+  const it = o.item;
+  if(o.where==='bag') S.eqBag.splice(S.eqBag.findIndex(x=>x.uid===uid), 1);
+  else S.equip[it.slot] = null;
+  const tag = EQ_RARITY[it.rarity].name + (SLOTS.find(s=>s.id===it.slot)||{name:''}).name;
+  pushLog('🗑️ 丢弃 <b class="t-'+EQ_RARITY[it.rarity].cls+'">'+tag+'</b>','log-sys');
+  toast('已丢弃 '+tag,'bad');
+  S._pendingDiscard = null;
+  closeModal(); renderAll(); save();
+}
+function repairEquip(uid){
+  const o = findOwned(uid); if(!o) return;
+  const it = o.item;
+  const mx = itemDurMax(it);
+  if(it.dur >= mx){ toast('该装备耐久已满','bad'); return; }
+  const need = REPAIR_COST[it.rarity] || 1;
+  if((S.res.repair||0) < need){ toast('维修材料不足（需 '+need+'）','bad'); return; }
+  S.res.repair -= need;
+  it.dur = mx;
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  pushLog('🔧 维修完成：'+sl.name+' 耐久恢复至 <b class="t-good">'+mx+'</b>，词条重新生效','log-tip');
+  toast('🔧 已修复 '+sl.name,'good');
   renderAll(); save();
 }
-function enhanceCost(e){
-  const tier = RORDER.indexOf(e.rarity);
-  return { ess: Math.round((8 + tier*22) * Math.pow(1.22, e.enhance)) };
+/** 耐久损耗：kind 为 null 表示自然损耗，否则为巨物品级 */
+function wearEquip(bigR){
+  const st = eqStats();
+  const natMul = 1 + (st.naturalWear||0);
+  const bigMul = (1 + (st.wearUp||0)) * Math.max(0.15, 1 - (st.bigDmgRed||0));
+  SLOTS.forEach(sl=>{
+    const it = S.equip[sl.id]; if(!it || !(it.dur > 0)) return;
+    let dmg = 0.08 * natMul;
+    if(bigR){
+      const base = BIG_WEAR[bigR] || 4;
+      const heavy = (sl.id==='rod' || sl.id==='line' || sl.id==='glove') ? 1 : 0.45;
+      dmg += base * heavy * bigMul;
+    }
+    it.dur = Math.max(0, +(it.dur - dmg).toFixed(2));
+  });
 }
-function enhanceEquip(slot){
-  const e = S.equip[slot];
-  if(e.enhance >= 20){ toast('该装备强化已满（+20）','bad'); return; }
-  const c = enhanceCost(e);
-  if(S.ess < c.ess){ toast('钓鱼精华不足（需 '+fmt(c.ess)+'）','bad'); return; }
-  S.ess -= c.ess;
-  const rate = Math.max(0.22, 0.92 - e.enhance*0.035);
-  if(Math.random() < rate){
-    e.enhance++;
-    pushLog('⚒️ 强化成功！'+SLOTS.find(s=>s.id===slot).name+' <b class="t-legend">+'+e.enhance+'</b>','log-big');
-    toast('⚒️ 强化成功 +'+e.enhance,'gold');
+/** 检查是否有装备耐久归零（词条失效白字化） */
+function checkBroken(){
+  let broke = null;
+  SLOTS.forEach(sl=>{
+    const it = S.equip[sl.id];
+    if(it && it.dur <= 0 && !it._broke){
+      it._broke = true;
+      const nm = SLOTS.find(s=>s.id===sl.id).name;
+      pushLog('💥 <b class="t-legend">'+nm+' 耐久归零！</b>全部词条失效，只剩最基础白字属性，需消耗维修材料修复','log-bad');
+      if(!broke) broke = nm;
+    }
+    if(it && it.dur > 0) it._broke = false;
+  });
+  if(broke) toast('💥 '+broke+' 耐久归零，词条失效','bad');
+}
+function brokenCount(){
+  let n=0; SLOTS.forEach(sl=>{ const it=S.equip[sl.id]; if(it && it.dur<=0) n++; }); return n;
+}
+/** 涡流反噬：随机重创一件在穿装备 */
+function backlashDamage(){
+  const worn = SLOTS.map(sl=>S.equip[sl.id]).filter(x=>x && x.dur > 0);
+  if(!worn.length){
+    pushLog('🌀 涡流反噬爆发，但你身上没有在穿的装备，反噬落空','log-sys');
+    return null;
+  }
+  const it = worn[Math.floor(Math.random()*worn.length)];
+  const mx = itemDurMax(it);
+  const dmg = Math.max(8, Math.round(mx * (0.26 + Math.random()*0.16)));
+  it.dur = Math.max(0, +(it.dur - dmg).toFixed(2));
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  pushLog('🌀 <b class="t-legend">涡流反噬！</b>本次祈愿没有收获，'+sl.name+' 承受 <b class="t-legend">'+dmg+'</b> 点耐久损伤（'+it.dur+'/'+mx+'）','log-bad');
+  if(it.dur <= 0) pushLog('💥 '+sl.name+' 耐久见底，<b class="t-legend">词条直接失效</b>','log-bad');
+  checkBroken();
+  return {slot:it.slot, dmg};
+}
+
+/* ---------------- 渔具工坊 · 渔获祈愿（抽装备） ---------------- */
+let WQ = null;   // 当前祈愿流程状态机
+/** 单次消耗（部位定向 +30%） */
+function wishUnitCost(mode, lock){
+  const c = WISH_CFG[mode].cost1;
+  const mul = lock ? 1.3 : 1;
+  const o = {};
+  for(const k in c) o[k] = Math.ceil(c[k]*mul);
+  return o;
+}
+function costText(c){
+  return Object.keys(c).map(k=>'<b>'+c[k]+'</b> '+RES_META[k].ico+RES_META[k].name).join(' + ') || '免费';
+}
+function canAfford(c){ for(const k in c){ if((S.res[k]||0) < c[k]) return false; } return true; }
+function payCost(c, sign){
+  for(const k in c) S.res[k] = (S.res[k]||0) + c[k]*sign;
+}
+/** 纯加权随机品质（不走保底） */
+function rollRarityRaw(mode){
+  const pool = WISH_CFG[mode].pool;
+  let total = 0; pool.forEach(p=>total += p[1]);
+  let x = Math.random()*total;
+  for(const p of pool){ x -= p[1]; if(x <= 0) return p[0]; }
+  return pool[0][0];
+}
+/** 带保底的品质判定（每次祈愿只调用一次，保底计数不受涡流反噬影响） */
+function rollWishRarity(mode){
+  const cfg = WISH_CFG[mode];
+  if(mode === 'deep'){
+    S.wish.deepEpic = (S.wish.deepEpic||0) + 1;
+    S.wish.deepLegend = (S.wish.deepLegend||0) + 1;
+    if(S.wish.deepLegend >= cfg.pity.legend) return 'legend';
+    if(S.wish.deepEpic >= cfg.pity.epic) return 'epic';
   }else{
-    pushLog('⚒️ 强化失败（不掉级，少量材料损耗）','log-sys');
-    toast('强化失败，材料未掉级','bad');
+    S.wish.calm = (S.wish.calm||0) + 1;
+    if(S.wish.calm >= cfg.pity.rare) return 'rare';
   }
-  renderAll(); save();
+  return rollRarityRaw(mode);
 }
-function reforgeCost(e){
-  const tier = RORDER.indexOf(e.rarity);
-  return Math.round((30 + tier*60) * Math.pow(1.18, (e.reforge||0))) ;
-}
-function reforgeWords(slot){
-  const e = S.equip[slot]; const rc = EQ_RARITY[e.rarity];
-  if(rc.words===0){ toast('白/绿装无专属词条，无法洗练','bad'); return; }
-  const cost = reforgeCost(e);
-  if(S.ess < cost){ toast('钓鱼精华不足（需 '+fmt(cost)+'）','bad'); return; }
-  S.ess -= cost; e.reforge = (e.reforge||0)+1;
-  const ids = EQ_WORDS.map(w=>w.id).sort(()=>Math.random()-0.5).slice(0, rc.words);
-  e.words = ids.map(id=>({id, roll: 0.4 + Math.random()*0.6}));
-  const names = e.words.map(w=>{ const d=EQ_WORDS.find(x=>x.id===w.id); const v=Math.round(d.base+d.per*w.roll); return d.name+' +'+v+(d.suffix||''); });
-  pushLog('✨ 洗练完成：'+names.join('，'),'log-rare');
-  toast('✨ 洗练出 '+rc.words+' 条词条','good');
-  renderAll(); save();
-}
-function advanceCost(e){
-  const tier = RORDER.indexOf(e.rarity);
-  if(tier>=5) return null;
-  return { mats: e.lv >= EQ_RARITY[e.rarity].maxLv - 1 ? 1 : 0, gold: Math.round(4000*Math.pow(2.1,tier)), ess: Math.round(60*Math.pow(1.95,tier)) };
-}
-function advanceEquip(slot){
-  const e = S.equip[slot]; const tier = RORDER.indexOf(e.rarity);
-  if(tier>=5){ toast('已是最高品级鸿蒙','bad'); return; }
-  const rc = EQ_RARITY[e.rarity];
-  if(e.lv < rc.maxLv){ toast('需先升满当前品级等级（Lv.'+rc.maxLv+'）才能进阶','bad'); return; }
-  const c = advanceCost(e);
-  if(S.gold < c.gold){ toast('金币不足（需 '+fmt(c.gold)+'）','bad'); return; }
-  if(S.ess < c.ess){ toast('钓鱼精华不足（需 '+fmt(c.ess)+'）','bad'); return; }
-  S.gold -= c.gold; S.ess -= c.ess;
-  const next = RORDER[tier+1];
-  e.rarity = next; e.lv = 1; e.enhance = 0;
-  const rc2 = EQ_RARITY[next];
-  if(rc2.words>0){
-    const ids = EQ_WORDS.map(w=>w.id).sort(()=>Math.random()-0.5).slice(0, rc2.words);
-    e.words = ids.map(id=>({id, roll: 0.4+Math.random()*0.6}));
+/** 实际拿到某品质后清空对应保底计数 */
+function markObtained(mode, rarity){
+  if(mode === 'deep'){
+    if(rarity === 'legend'){ S.wish.deepLegend = 0; S.wish.deepEpic = 0; }
+    else if(rarity === 'epic'){ S.wish.deepEpic = 0; }
+  }else{
+    if(EQ_ORDER.indexOf(rarity) >= EQ_ORDER.indexOf('rare')) S.wish.calm = 0;
   }
-  pushLog('🌟 <b class="t-legend">装备进阶！</b>'+SLOTS.find(s=>s.id===slot).name+' → '+raritySpan(next, EQ_RARITY[next].name+'品质'),'log-legend');
-  toast('🌟 进阶 '+EQ_RARITY[next].name+' 成功！','gold');
+}
+/** 部位定向：80% 出锁定部位，20% 随机其他部位 */
+function rollSlot(lock){
+  const r = SLOTS[Math.floor(Math.random()*SLOTS.length)].id;
+  if(!lock) return r;
+  return Math.random() < 0.8 ? lock : r;
+}
+function startWish(mode, times, lock){
+  const unit = wishUnitCost(mode, lock);
+  const total = {}; for(const k in unit) total[k] = unit[k]*times;
+  if(!canAfford(total)){
+    const miss = Object.keys(total).find(k=>(S.res[k]||0) < total[k]);
+    toast(RES_META[miss].name+'不足（共需 '+total[miss]+'）','bad'); return;
+  }
+  if(S.eqBag.length + times > BAG_LIMIT){ toast('背包空间不足（'+BAG_LIMIT+'），先丢弃无用装备','bad'); return; }
+  WQ = {mode, left:times, total:times, lock:lock||null, unit, got:[], free:false, negCut:false,
+        qUp:false, riskMul:1, backlash:0, cands:null};
+  closeModal();
+  wishStep();
+}
+function wishStep(){
+  if(!WQ) return;
+  if(WQ.left <= 0){ finishWish(); return; }
+  // 涡流奇遇（仅深海祈愿小概率触发）
+  if(WQ.mode === 'deep' && Math.random() < 0.08){ openWonder(); return; }
+  wishRoll();
+}
+function wishRoll(){
+  if(!WQ) return;
+  if(!WQ.free){
+    if(!canAfford(WQ.unit)){ toast('祈愿资源不足，本次祈愿结束','bad'); finishWish(); return; }
+    payCost(WQ.unit, -1);
+  }
+  WQ.left--;
+  // 涡流反噬：本次不会获得新装备，并随机重创一件在穿装备（保底计数不清空）
+  const risk = (WISH_CFG[WQ.mode].risk||0) * (WQ.riskMul||1);
+  if(risk > 0 && Math.random() < risk){
+    WQ.backlash++; WQ.free = false; WQ.qUp = false; WQ.riskMul = 1;
+    backlashDamage();
+    renderAll(); save();
+    setTimeout(wishStep, 0);
+    return;
+  }
+  let mainR = rollWishRarity(WQ.mode);
+  if(WQ.qUp){
+    const i = EQ_ORDER.indexOf(mainR);
+    if(i < EQ_ORDER.length-1) mainR = EQ_ORDER[i+1];
+  }
+  const specs = [];
+  for(let i=0;i<3;i++) specs.push({rarity: i===0 ? mainR : rollRarityRaw(WQ.mode), slot: rollSlot(WQ.lock)});
+  WQ.cands = specs.map(sp=>makeEquip(sp.slot, sp.rarity, {negCut:WQ.negCut}));
+  WQ.free = false; WQ.negCut = false; WQ.qUp = false; WQ.riskMul = 1;
+  openPick3();
+}
+/** 三选一遴选：仅显示品质与部位，词条完全隐藏；选 1 带走，另 2 件沉入深海 */
+function openPick3(){
+  if(!WQ || !WQ.cands) return;
+  const cards = WQ.cands.map((it,i)=>{
+    const sl = SLOTS.find(s=>s.id===it.slot);
+    const rc = EQ_RARITY[it.rarity];
+    return '<div class="pickCard" onclick="choosePick('+i+')">'+
+      '<div class="pq t-'+rc.cls+'">'+rc.name+'</div>'+
+      '<div class="ps">'+sl.ico+'</div>'+
+      '<div class="pn">'+sl.name+'</div></div>';
+  }).join('');
+  openModal('🌊 三选一遴选 · 第 '+(WQ.total-WQ.left)+'/'+WQ.total+' 次', `
+    <div class="hint" style="margin-bottom:4px">三件候选浮出水面，<b>词条内容完全隐藏</b>。只能选择 1 件带走，另外两件将直接沉入深海销毁。</div>
+    <div class="pick3">${cards}</div>
+    <div class="hint">⚠️ 选中的装备进入背包后才会解锁完整词条（含负面词条与传说代价词缀）。</div>
+  `);
+}
+function choosePick(i){
+  if(!WQ || !WQ.cands) return;
+  const it = WQ.cands[i];
+  markObtained(WQ.mode, it.rarity);
+  S.eqBag.push(it);
+  WQ.got.push(it);
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  const cls = EQ_RARITY[it.rarity].cls;
+  pushLog('🎣 遴选获得 <b class="t-'+cls+'">'+eqFullName(it)+'</b>（另两件已沉入深海）',
+    it.rarity==='legend'?'log-legend':it.rarity==='epic'?'log-epic':'log-tip');
+  toast('获得 '+EQ_RARITY[it.rarity].name+sl.name, it.rarity==='legend'?'gold':it.rarity==='epic'?'mystic':'good');
+  WQ.cands = null;
+  renderAll(); save();
+  setTimeout(wishStep, 0);
+}
+/** 涡流奇遇：渔灵馈赠 / 暗流缠绕 */
+function openWonder(){
+  if(Math.random() < 0.5){
+    // 渔灵馈赠：本次抽取免费，负面词条概率降低
+    WQ.free = true; WQ.negCut = true;
+    pushLog('✨ <b class="t-good">涡流奇遇 · 渔灵馈赠</b>：本次抽取免费，且负面词条概率降低','log-rare');
+    toast('✨ 渔灵馈赠：本次免费','good');
+    wishRoll();
+  }else{
+    openModal('🌀 涡流奇遇 · 暗流缠绕', `
+      <div class="riskNote">暗流缠绕着你的钓组。强行继续抽取会让<b>装备品质提升一档</b>，但涡流反噬概率将<b>提升至 40%</b>，可能重创一件在穿装备。</div>
+      <div class="hint" style="margin-top:8px">A：放弃本次抽取，退回消耗资源（${costText(WQ.unit)}），安全结束。</div>
+      <div class="hint">B：强行继续，品质 +1 档，反噬概率 40%。</div>
+    `, '<button class="btn" onclick="wonderAbandon()">A · 放弃并退回</button><button class="btn gold" onclick="wonderForce()">B · 强行继续</button>');
+  }
+}
+function wonderAbandon(){
+  if(!WQ) return;
+  WQ.left--; WQ.cands = null;
+  pushLog('🌀 放弃本次抽取，已退回消耗资源（'+costText(WQ.unit).replace(/<[^>]+>/g,'')+'）','log-sys');
+  toast('已放弃本次抽取，资源退回','good');
+  renderAll(); save();
+  setTimeout(wishStep, 0);
+}
+function wonderForce(){
+  if(!WQ) return;
+  WQ.qUp = true; WQ.riskMul = 2; WQ.free = false;
+  pushLog('🌀 强行继续：本次品质提升一档，涡流反噬概率提升至 40%','log-bad');
+  wishRoll();
+}
+function finishWish(){
+  if(!WQ) return;
+  const got = WQ.got.slice(), bl = WQ.backlash, mode = WQ.mode, total = WQ.total;
+  WQ = null;
+  let body = '';
+  if(got.length){
+    body = got.map(it=>{
+      const sl = SLOTS.find(s=>s.id===it.slot);
+      return '<div class="kv"><span class="t-'+EQ_RARITY[it.rarity].cls+'">'+EQ_RARITY[it.rarity].name+sl.name+'</span><b>'+sl.ico+'</b></div>';
+    }).join('');
+  }else{
+    body = '<div class="hint">本次没有获得装备'+(bl?'（涡流反噬 '+bl+' 次）':'')+'。</div>';
+  }
+  if(bl) body += '<div class="riskNote" style="margin-top:6px">🌀 期间触发涡流反噬 '+bl+' 次，保底计数未清空。</div>';
+  openModal(WISH_CFG[mode].ico+' '+WISH_CFG[mode].name+' 结算（'+total+' 次）', body,
+    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();switchTab(\'inv\')">查看背包</button>');
   renderAll(); save();
 }
-function autoEquipBest(){
-  // 商店直购：用金币购买指定品级装备（白/绿商店可购）
-  toast('提示：装备通过挂机掉落碎片合成，或在此进阶提升','bad');
+/** 垂钓直落：巨物 / 传说鱼低概率直接掉落装备（无反噬风险） */
+function maybeDropEquip(topR){
+  const o = RARITY[topR] ? RARITY[topR].order : 0;
+  if(o < 3) return null;
+  const p = o >= 5 ? 0.09 : (o === 4 ? 0.06 : 0.035);
+  if(Math.random() > p) return null;
+  if(S.eqBag.length >= BAG_LIMIT) return null;
+  const r = o >= 5 ? 'legend' : (o === 4 ? 'epic' : 'rare');
+  const it = makeEquip(SLOTS[Math.floor(Math.random()*SLOTS.length)].id, r);
+  S.eqBag.push(it);
+  const sl = SLOTS.find(s=>s.id===it.slot);
+  pushLog('🎁 <b class="t-'+EQ_RARITY[r].cls+'">垂钓直落！</b>巨物身上挂着一件 '+eqFullName(it)+'（无反噬风险）','log-legend');
+  toast('🎁 直落 '+EQ_RARITY[r].name+sl.name,'gold');
+  return it;
 }
 
 /* ---------------- 商店 ---------------- */
 const SHOP_ITEMS = [
-  {id:'eq_good', name:'精良装备礼盒', ico:'📦', cost:{gold:6000}, desc:'购买后随机一件精良(绿)装备，直接替换当前该部位（若品级更高）'},
-  {id:'eq_rare', name:'稀有装备礼盒', ico:'🎁', cost:{gold:26000, ess:40}, desc:'随机一件稀有(蓝)装备，附带1条专属词条'},
+  {id:'repair_s', name:'维修材料包', ico:'🔧', cost:{gold:9000},  desc:'获得 3 个维修材料，用于修复装备耐久'},
+  {id:'repair_l', name:'维修材料箱', ico:'🧰', cost:{gold:42000, ess:60}, desc:'获得 18 个维修材料'},
   {id:'ess_s',   name:'精华小包',     ico:'💎', cost:{gold:12000}, desc:'获得 30 点钓鱼精华'},
   {id:'ess_l',   name:'精华大包',     ico:'💠', cost:{gold:68000}, desc:'获得 200 点钓鱼精华'},
 ];
@@ -1534,19 +2249,8 @@ function buyShop(id){
   S.gold -= it.cost.gold||0; S.ess -= it.cost.ess||0;
   if(id==='ess_s'){ S.ess += 30; toast('获得 30 精华','good'); }
   else if(id==='ess_l'){ S.ess += 200; toast('获得 200 精华','good'); }
-  else{
-    const r = id==='eq_good'?'good':'rare';
-    const slot = SLOTS[Math.floor(Math.random()*SLOTS.length)];
-    const e = S.equip[slot.id];
-    if(RORDER.indexOf(e.rarity) < RORDER.indexOf(r)){
-      S.equip[slot.id] = {rarity:r, lv:1, enhance:0, words: EQ_RARITY[r].words>0 ? [{id:'speed', roll:0.4+Math.random()*0.6}] : []};
-      toast('获得 '+EQ_RARITY[r].name+' '+slot.name+'！','gold');
-      pushLog('🎁 商店购得 '+raritySpan(r, EQ_RARITY[r].name)+' '+slot.name,'log-big');
-    }else{
-      S.ess += 25;
-      toast('部位品级更高，已折算为 25 精华','bad');
-    }
-  }
+  else if(id==='repair_s'){ S.res.repair = (S.res.repair||0)+3; toast('获得 3 维修材料','good'); }
+  else if(id==='repair_l'){ S.res.repair = (S.res.repair||0)+18; toast('获得 18 维修材料','good'); }
   renderAll(); save();
 }
 
@@ -1617,7 +2321,7 @@ function offlineSettle(){
   pushLog('🌙 <b>离线挂机结算</b>（离开 '+durTxt+'）','log-big');
   pushLog('　已自动转换为：<b class="t-legend">'+fmt(gold)+'</b> 金币、<b class="t-mystic">'+fmt(ess)+'</b> 精华，共 '+fmt(cnt)+' 条鱼获','log-tip');
   if(offBonus>0) pushLog('　离线收益加成：<b class="t-good">+'+Math.round(offBonus*100)+'%</b>','log-tip');
-  if(!sb.offlineSafe && rares>0) pushLog('　提示：集齐 6 件同品级套装可解锁「永窝」，离线稀有鱼不掉档','log-sys');
+  if(rares>0 && (st.offlineNest||0) <= 0) pushLog('　提示：「离线窝点保护」词条可提升离线收益与稀有鱼留存','log-sys');
   toast('🌙 离线收益已到账：'+fmt(gold)+' 金币','gold');
   S.lastOnline = now;
 }
@@ -1655,6 +2359,10 @@ function renderResBar(){
   const items = [
     ['💰','金币', fmt(S.gold)],
     ['💎','精华', fmt(S.ess)],
+    ['🐟','鱼获', fmt(S.res.catch||0)],
+    ['🐠','鱼鳞', fmt(S.res.scale||0)],
+    ['🫧','窝料精华', fmt(S.res.essence||0)],
+    ['🔧','维修', fmt(S.res.repair||0)],
     ['🧺','鱼篓', bc+'/'+bl],
     ['⭐','Lv', S.lv + ' ('+Math.floor(S.exp)+'/'+levelNeed(S.lv)+')'],
     ['🪣','窝点', nst.active? (Math.ceil(nst.remain/1000)+'s'):'无'],
@@ -1677,8 +2385,8 @@ function renderBanners(){
   }
   const sat = (ENV.satietyUntil>Date.now()) ? ENV.satiety : 0;
   if(sat>0) a.push('<div class="banner sat">🔥 渔场饱和 <b>+'+Math.round(sat*100)+'%</b> · 同场 '+((S.satietyCount||0))+' 人打窝</div>');
-  const sb = setBonus();
-  if(sb.count>=3) a.push('<div class="banner">🧩 '+EQ_RARITY[sb.rarity].name+' '+sb.count+'件套 · 衰减-'+Math.round(sb.nestDecay*100)+'%'+(sb.count>=6?' · 永窝已激活':'')+'</div>');
+  const bn = brokenCount();
+  if(bn) a.push('<div class="banner" style="color:#ff9aa2;border-color:#ff5f6d">💥 '+bn+' 件装备耐久归零 · 词条已失效，需维修材料修复</div>');
   // 渔场机制状态（潮汐 / 随机事件）
   const m = spotMech();
   if(m.tide){
@@ -1707,7 +2415,7 @@ function renderActionBar(){
 }
 function renderTabHeads(){
   const tl = document.getElementById('tabsL');
-  const L = [['equip','⚙️ 装备'],['bag','🧺 鱼篓'],['shop','🏪 商店'],['bait','🪣 窝料']];
+  const L = [['equip','⚙️ 装备'],['inv','🎒 背包'],['wish','🌊 祈愿'],['bag','🧺 鱼篓'],['shop','🏪 商店'],['bait','🪣 窝料']];
   tl.innerHTML = L.map(([k,n])=>'<div class="tab '+(tabL===k?'on':'')+'" onclick="switchTab(\''+k+'\')">'+n+'</div>').join('');
   const tr = document.getElementById('tabsR');
   const R = [['pond','🌊 渔场'],['rank','🏆 榜单'],['social','🤝 钓友'],['info','📖 图鉴']];
@@ -1716,6 +2424,8 @@ function renderTabHeads(){
 function renderPaneL(){
   const el = document.getElementById('paneL');
   if(tabL==='equip') el.innerHTML = viewEquip();
+  else if(tabL==='inv') el.innerHTML = viewInv();
+  else if(tabL==='wish') el.innerHTML = viewWish();
   else if(tabL==='bag') el.innerHTML = viewBag();
   else if(tabL==='shop') el.innerHTML = viewShop();
   else el.innerHTML = viewBait();
@@ -1728,91 +2438,219 @@ function renderPaneR(){
   else el.innerHTML = viewInfo();
 }
 function switchTab(k){
-  if(['equip','bag','shop','bait'].includes(k)) tabL=k; else tabR=k;
+  if(['equip','inv','wish','bag','shop','bait'].includes(k)) tabL=k; else tabR=k;
   renderTabHeads(); renderPaneL(); renderPaneR();
   closeDrawers();
 }
 
 /* ---- 视图：装备 ---- */
+/* ---------- 属性面板取值与着色 ---------- */
+function statNum(k, st){
+  const v = st[k] || 0;
+  return PCT_STATS.indexOf(k) >= 0 ? v*100 : v;
+}
+function statText(k, v){
+  const u = STAT_META[k] ? STAT_META[k].unit : '';
+  const n = (Math.abs(v) % 1 === 0) ? v.toFixed(0) : v.toFixed(1);
+  return (v > 0 ? '+' : '') + n + u;
+}
+function statColorCls(v){ return v > 0 ? 'wpos' : (v < 0 ? 'wneg' : ''); }
+/** 耐久条 */
+function durBarHtml(it){
+  const mx = itemDurMax(it);
+  const pct = mx > 0 ? Math.max(0, Math.min(100, it.dur/mx*100)) : 0;
+  const cls = pct > 50 ? 'ok' : (pct > 20 ? 'mid' : 'low');
+  const col = pct > 50 ? 'linear-gradient(90deg,#2e9c68,#5fd08a)' : (pct > 20 ? 'linear-gradient(90deg,#c9922e,#ffcb52)' : 'linear-gradient(90deg,#c0392b,#ff6b74)');
+  return '<div class="durBar"><i style="width:'+pct.toFixed(1)+'%;background:'+col+'"></i></div>'+
+         '<div class="durTxt '+cls+'">耐久 '+Math.round(it.dur)+' / '+mx+(it.dur<=0?' · 词条失效':'')+'</div>';
+}
+/** 词条列表 HTML */
+function wordsHtml(it){
+  if(!it.words || !it.words.length) return '<div class="hint">该装备没有词条</div>';
+  return wordView(it).map(w=>
+    '<div class="word'+(w.legend?' wlegend':'')+'"><div class="wn">'+esc(w.name)+(w.legend?' <span class="pill p-legend">传说代价</span>':'')+
+    '</div><div class="wv '+(w.legend?'t-legend':(w.neg?'wneg':'wpos'))+'">'+esc(w.text)+'</div></div>'
+  ).join('');
+}
+
+/* ---- 视图：装备 ---- */
 function viewEquip(){
-  const st = eqStats(), sb = setBonus();
-  const stat = [
-    ['上钩速度',   '+'+(st.speed*100).toFixed(1)+'%'],
-    ['垂钓深度',   st.depth],
-    ['暴击概率',   '+'+(st.crit*100).toFixed(1)+'%'],
-    ['鱼篓容量',   '+'+st.capacity],
-    ['资源获取',   '+'+(st.resource*100).toFixed(1)+'%'],
-    ['巨物捕获',   '+'+(st.big*100).toFixed(1)+'%'],
-    ['稀有爆率',   '+'+(st.rareUp*100).toFixed(1)+'%'],
-    ['打窝时长',   '+'+(st.nestT*100).toFixed(1)+'%'],
-  ];
-  let h = '<div class="sec"><div class="sec-title">钓手属性总览</div>'+
-    stat.map(([k,v])=>'<div class="kv"><span>'+k+'</span><b class="t-good">'+v+'</b></div>').join('')+
-    '</div>';
+  const st = eqStats();
+  let h = '<div class="sec"><div class="sec-title">综合属性面板</div><div class="statGrid">';
+  PANEL_STATS.forEach(k=>{
+    const v = statNum(k, st);
+    const num = (Math.abs(v)%1===0) ? v.toFixed(0) : v.toFixed(1);
+    h += '<div class="kv"><span>'+STAT_META[k].name+'</span><b class="'+statColorCls(v)+'">'+
+         (k==='depth'||k==='capacity' ? (v>0?'+':'')+num : statText(k, v))+'</b></div>';
+  });
+  h += '</div></div>';
+  const bn = brokenCount();
+  if(bn) h += '<div class="sec"><div class="secWarn">💥 有 '+bn+' 件装备耐久归零，词条已失效（仅保留最基础白字属性）。请到「🎒 背包 / 装备详情」消耗维修材料修复。</div></div>';
   h += '<div class="sec"><div class="sec-title">装备槽位（点击查看详情）</div><div class="eqGrid">';
   SLOTS.forEach(sl=>{
-    const e = S.equip[sl.id]; const rc = EQ_RARITY[e.rarity];
-    h += '<div class="eqSlot" onclick="openEquip(\''+sl.id+'\')">'+
+    const it = S.equip[sl.id];
+    if(!it){
+      h += '<div class="eqSlot slotEmpty" onclick="switchTab(\'inv\')">'+
+        '<div class="slotName">'+sl.ico+' '+sl.name+'</div>'+
+        '<div class="eqName">— 空 —</div><div class="eqLv">点击到背包换装</div></div>';
+      return;
+    }
+    const rc = EQ_RARITY[it.rarity];
+    h += '<div class="eqSlot'+(it.dur<=0?' broken':'')+'" onclick="openEquip(\''+sl.id+'\')">'+
+      (it.dur<=0?'<div class="brokenTag">词条失效</div>':'')+
       '<div class="slotName">'+sl.ico+' '+sl.name+'</div>'+
-      '<div class="eqName t-'+rc.cls+'">'+EQ_RARITY[e.rarity].name+(e.enhance>0?' +'+e.enhance:'')+'</div>'+
-      '<div class="eqLv">Lv.'+e.lv+' / '+rc.maxLv+'</div>'+
-      '<div class="bar"><i style="width:'+Math.round(e.lv/rc.maxLv*100)+'%;background:'+RARITY[RORDER[Math.max(0,RORDER.indexOf(e.rarity))]].color+'"></i></div>'+
+      '<div class="eqName t-'+rc.cls+'">'+rc.name+sl.name+'</div>'+
+      '<div class="eqLv">'+it.words.length+' 条词条</div>'+
+      durBarHtml(it)+
       '</div>';
   });
   h += '</div></div>';
-  // 套装
-  const cnt = {};
-  SLOTS.forEach(sl=>{ const r=S.equip[sl.id].rarity; cnt[r]=(cnt[r]||0)+1; });
-  h += '<div class="sec"><div class="sec-title">套装羁绊</div>';
-  RORDER.slice().reverse().forEach(r=>{
-    if(!cnt[r]) return;
-    const n = cnt[r];
-    const on3 = n>=3, on6 = n>=6;
-    h += '<div class="card '+(on3?'hl':'')+'"><div class="row"><b class="t-'+RARITY[r].cls+'">'+EQ_RARITY[r].name+'套 · '+n+'/6</b>'+(on6?'<span class="pill p-mystic">永窝</span>':(on3?'<span class="pill p-good">3件套</span>':''))+'</div>'+
-      '<div class="bar" style="margin:6px 0"><i style="width:'+Math.round(n/6*100)+'%;background:'+RARITY[r].color+'"></i></div>'+
-      '<div class="tiny">3件套：打窝衰减 -'+Math.round((0.20+RORDER.indexOf(r)*0.02)*100)+'%，上钩速度 +'+Math.round((0.15+RORDER.indexOf(r)*0.02)*100)+'%</div>'+
-      '<div class="tiny">6件套：永窝（打窝时长 +30%，传说概率大增，离线稀有鱼不掉档）</div>'+
-      (on3?'<div class="grec">✓ 已激活 3件套效果'+(on6?' + 6件套「永窝」':'（再集齐 '+(6-n)+' 件激活永窝）')+'</div>':'')+
-      '</div>';
-  });
-  if(!Object.keys(cnt).length) h += '<div class="hint">暂无套装</div>';
-  h += '</div>';
+  // 巨物保护阈值
+  const th = (S.cutGuard == null ? 0.20 : S.cutGuard);
+  h += '<div class="sec"><div class="sec-title">巨物博弈 · 断线保全阈值</div>'+
+    '<div class="hint" style="margin-bottom:6px">巨物咬钩时，若有在穿装备耐久低于该比例，会暂停挂机并让你选择「强行搏鱼」或「主动断线保全装备」（断线将直接丢失这条大鱼）。设为 0 表示总是搏鱼。</div>'+
+    '<div class="slotPick">'+
+    [0,0.15,0.25,0.35].map(v=>'<div class="sp'+(Math.abs(th-v)<1e-6?' on':'')+'" onclick="setCutGuard('+v+')">'+(v===0?'不提示':Math.round(v*100)+'%')+'</div>').join('')+
+    '</div></div>';
+  h += '<div class="sec"><div class="sec-title">规则提醒</div>'+
+    '<div class="hint">· 无套装羁绊、无拆解、无重铸：每件装备独立生效。<br>'+
+    '· 装备到手词条<b>永久固定</b>，不能洗词条、不能改造，不好就直接丢弃。<br>'+
+    '· 史诗、传说为拾取绑定，不可交易。<br>'+
+    '· 词条数值保留 1 位小数，同一件装备不会生成互相冲突的词条。</div></div>';
   return h;
 }
 function openEquip(slot){
-  const sl = SLOTS.find(s=>s.id===slot); const e = S.equip[slot]; const rc = EQ_RARITY[e.rarity];
-  const st = eqStats();
-  const c = upCost(e), ec = enhanceCost(e), ac = advanceCost(e);
-  let words = '';
-  if(e.words && e.words.length){
-    words = e.words.map(w=>{
-      const d = EQ_WORDS.find(x=>x.id===w.id);
-      const v = d.base + d.per*w.roll + d.per*e.enhance*0.55;
-      return '<div class="kv"><span>'+d.name+'</span><b class="t-epic">'+(d.stat==='depth'? '+'+Math.round(v) : '+'+v.toFixed(1)+d.suffix)+'</b></div>';
-    }).join('');
-  }else{
-    words = '<div class="hint">'+(rc.words===0?'该品级无专属词条':'暂无词条，可洗练')+'</div>';
-  }
+  const sl = SLOTS.find(s=>s.id===slot); const it = S.equip[slot];
+  if(!it){ toast('该部位没有装备','bad'); return; }
+  const rc = EQ_RARITY[it.rarity];
+  const mx = itemDurMax(it);
+  const need = REPAIR_COST[it.rarity] || 1;
+  const base = slotBase(slot, it.rarity);
+  const baseTxt = Object.keys(base).map(k=>STAT_META[k].name+' +'+base[k]+(STAT_META[k].unit||'')).join('，');
+  const full = it.dur >= mx;
   openModal('装备详情 · '+sl.name, `
     <div class="card hl">
-      <div class="row"><b class="t-${rc.cls}" style="font-size:16px">${sl.ico} ${EQ_RARITY[e.rarity].name} ${sl.name}${e.enhance>0?' +'+e.enhance:''}</b><span class="pill p-${rc.cls}">${rc.name}</span></div>
+      <div class="row"><b class="t-${rc.cls}" style="font-size:16px">${sl.ico} ${rc.name}${sl.name}</b><span class="pill p-${rc.cls}">${rc.name}</span></div>
       <div class="tiny" style="margin-top:5px">${sl.desc}</div>
-      <div class="row" style="margin-top:8px"><span class="muted">等级</span><b>Lv.${e.lv} / ${rc.maxLv}</b></div>
-      <div class="bar"><i style="width:${Math.round(e.lv/rc.maxLv*100)}%;background:${RARITY[RORDER[Math.max(0,RORDER.indexOf(e.rarity))]].color}"></i></div>
-      <div class="row" style="margin-top:6px"><span class="muted">强化</span><b class="t-legend">+${e.enhance} / +20</b></div>
+      <div class="row" style="margin-top:8px"><span class="muted">耐久</span><b>${Math.round(it.dur)} / ${mx}</b></div>
+      ${durBarHtml(it)}
+      <div class="tiny" style="margin-top:6px">白字基础属性（耐久归零后仍保留）：${baseTxt||'—'}</div>
+      ${it.dur<=0?'<div class="secWarn">💥 耐久归零：全部词条失效，只剩上面这行白字属性。</div>':''}
     </div>
-    <div class="card"><div class="sec-title" style="margin:0 0 6px">专属词条</div>${words}</div>
+    <div class="card"><div class="sec-title" style="margin:0 0 6px">词条（永久固定 · 不可洗练）</div>${wordsHtml(it)}</div>
     <div class="card"><div class="sec-title" style="margin:0 0 6px">操作</div>
-      <div class="hint" style="margin-bottom:8px">升级：<b class="t-legend">${fmt(c.gold)}</b> 金币${c.ess?' + <b class="t-mystic">'+c.ess+'</b> 精华':''}</div>
-      <button class="btn primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="upgradeEquip('${slot}');openEquip('${slot}')" ${e.lv>=rc.maxLv?'disabled':''}>🔧 升级装备</button>
-      <div class="hint" style="margin-bottom:8px">强化：<b class="t-mystic">${fmt(ec.ess)}</b> 精华（成功 +1，失败不掉级）</div>
-      <button class="btn gold" style="width:100%;justify-content:center;margin-bottom:6px" onclick="enhanceEquip('${slot}');openEquip('${slot}')" ${e.enhance>=20?'disabled':''}>⚒️ 强化 +${e.enhance}</button>
-      ${rc.words>0?`<div class="hint" style="margin-bottom:8px">洗练词条：<b class="t-mystic">${fmt(reforgeCost(e))}</b> 精华</div>
-      <button class="btn" style="width:100%;justify-content:center;margin-bottom:6px" onclick="reforgeWords('${slot}');openEquip('${slot}')">✨ 洗练词条</button>`:''}
-      ${ac?`<div class="hint" style="margin-bottom:8px">进阶 → <b class="t-legend">${EQ_RARITY[RORDER[RORDER.indexOf(e.rarity)+1]].name}</b>：<b class="t-legend">${fmt(ac.gold)}</b> 金币 + <b class="t-mystic">${fmt(ac.ess)}</b> 精华${e.lv<rc.maxLv?'（需先升至 Lv.'+rc.maxLv+'）':''}</div>
-      <button class="btn pink" style="width:100%;justify-content:center" onclick="advanceEquip('${slot}');openEquip('${slot}')" ${e.lv<rc.maxLv?'disabled':''}>🌟 装备进阶</button>`:'<div class="hint">已达最高品级</div>'}
+      <div class="hint" style="margin-bottom:8px">维修至满耐久需 <b class="t-legend">${need}</b> 个维修材料（当前持有 <b>${S.res.repair||0}</b>）</div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="repairEquip('${it.uid}');openEquip('${slot}')" ${full||(S.res.repair||0)<need?'disabled':''}>🔧 维修装备</button>
+      <button class="btn" style="width:100%;justify-content:center;margin-bottom:6px" onclick="unequipSlot('${slot}')">📥 卸下到背包</button>
+      <button class="btn gold" style="width:100%;justify-content:center" onclick="discardItem('${it.uid}')">🗑️ 丢弃装备</button>
     </div>
   `);
+}
+
+/* ---- 视图：装备背包 ---- */
+function viewInv(){
+  const bag = S.eqBag.slice().sort((a,b)=>EQ_ORDER.indexOf(b.rarity)-EQ_ORDER.indexOf(a.rarity));
+  let h = '<div class="sec"><div class="sec-title">装备背包 '+S.eqBag.length+' / '+BAG_LIMIT+'</div>'+
+    '<div class="hint">点击查看详情与<b>属性增减对比</b>。装备为拾取绑定，词条永久固定，不需要的直接丢弃。</div></div>';
+  if(!bag.length) h += '<div class="sec"><div class="hint">背包空空。到「🌊 祈愿」用钓鱼产出的资源抽装备吧。</div></div>';
+  bag.forEach(it=>{
+    const sl = SLOTS.find(s=>s.id===it.slot); const rc = EQ_RARITY[it.rarity];
+    const wv = wordView(it);
+    const pos = wv.filter(w=>!w.neg).length, neg = wv.filter(w=>w.neg).length;
+    const mx = itemDurMax(it);
+    h += '<div class="bagEq" onclick="openBagItem(\''+it.uid+'\')">'+
+      '<div class="be-h"><div class="be-n t-'+rc.cls+'">'+sl.ico+' '+rc.name+sl.name+'</div>'+
+      '<span class="tiny">耐久 '+Math.round(it.dur)+'/'+mx+'</span></div>'+
+      '<div class="be-w">'+wv.length+' 条词条：<span class="wpos">'+pos+' 正</span>'+(neg?' / <span class="wneg">'+neg+' 负</span>':'')+
+      (wv.some(w=>w.legend)?' · <span class="t-legend">含传说代价词缀</span>':'')+'</div>'+
+      '</div>';
+  });
+  return h;
+}
+function openBagItem(uid){
+  const o = findOwned(uid); if(!o) return;
+  const it = o.item; const sl = SLOTS.find(s=>s.id===it.slot); const rc = EQ_RARITY[it.rarity];
+  const cur = S.equip[it.slot];
+  const d = equipDelta(it.slot, it);
+  let cmp = '<div class="hint">与当前穿戴（'+(cur?EQ_RARITY[cur.rarity].name+''+sl.name:'空')+'）相比，无任何属性变化</div>';
+  if(d.length){
+    cmp = '<div class="cmpGrid">'+d.map(x=>{
+      const v = PCT_STATS.indexOf(x.key)>=0 ? x.delta*100 : x.delta;
+      const n = (Math.abs(v)%1===0) ? v.toFixed(0) : v.toFixed(1);
+      return '<div class="cr"><span>'+x.name+'</span><b class="'+statColorCls(v)+'">'+(v>0?'+':'')+n+(x.unit||'')+'</b></div>';
+    }).join('')+'</div>';
+  }
+  openModal('背包 · '+rc.name+sl.name, `
+    <div class="card hl">
+      <div class="row"><b class="t-${rc.cls}" style="font-size:16px">${sl.ico} ${rc.name}${sl.name}</b><span class="pill p-${rc.cls}">${rc.name}</span></div>
+      <div class="row" style="margin-top:8px"><span class="muted">耐久</span><b>${Math.round(it.dur)} / ${itemDurMax(it)}</b></div>
+      ${durBarHtml(it)}
+      <div class="tiny" style="margin-top:6px">拾取绑定${(it.rarity==='epic'||it.rarity==='legend')?' · 不可交易':''} · 词条永久固定</div>
+    </div>
+    <div class="card"><div class="sec-title" style="margin:0 0 6px">词条</div>${wordsHtml(it)}</div>
+    <div class="card"><div class="sec-title" style="margin:0 0 6px">换上后的属性增减</div>${cmp}</div>
+    <div class="card"><div class="sec-title" style="margin:0 0 6px">操作</div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="equipItem('${uid}')">🎽 换上（自动换下当前装备）</button>
+      <button class="btn" style="width:100%;justify-content:center;margin-bottom:6px" onclick="repairEquip('${uid}');openBagItem('${uid}')">🔧 维修（需 ${REPAIR_COST[it.rarity]||1} 维修材料）</button>
+      <button class="btn gold" style="width:100%;justify-content:center" onclick="discardItem('${uid}')">🗑️ 丢弃</button>
+    </div>
+  `);
+}
+
+/* ---- 视图：渔具工坊 · 渔获祈愿 ---- */
+let wishSlotLock = null;
+function toggleWishSlot(id){
+  wishSlotLock = (wishSlotLock === id) ? null : id;
+  viewWishRefresh();
+}
+function viewWishRefresh(){
+  if(tabL === 'wish') document.getElementById('paneL').innerHTML = viewWish();
+}
+function viewWish(){
+  let h = '<div class="sec"><div class="sec-title">祈愿资源（全部来自钓鱼产出，无付费抽卡）</div>';
+  Object.keys(RES_META).forEach(k=>{
+    h += '<div class="kv"><span>'+RES_META[k].ico+' '+RES_META[k].name+'</span><b class="t-legend">'+(S.res[k]||0)+'</b></div>';
+  });
+  h += '<div class="hint" style="margin-top:6px">获取途径：出售普通鱼类得「普通鱼获」；稀有/巨物鱼掉落「珍贵鱼鳞」；钓获巨物概率产出「窝料精华」；稀有鱼售卖与商店可得「维修材料」。</div></div>';
+
+  h += '<div class="sec"><div class="sec-title">部位定向（可选，消耗 +30%）</div><div class="slotPick">'+
+    '<div class="sp'+(wishSlotLock===null?' on':'')+'" onclick="toggleWishSlot(null)">随机部位</div>'+
+    SLOTS.map(sl=>'<div class="sp'+(wishSlotLock===sl.id?' on':'')+'" onclick="toggleWishSlot(\''+sl.id+'\')">'+sl.ico+sl.name+'</div>').join('')+
+    '</div><div class="hint">定向后 80% 出锁定部位，20% 随机其他部位。</div></div>';
+
+  // 平稳打捞
+  const c1 = wishUnitCost('calm', wishSlotLock), c5 = {catch:(wishUnitCost('calm', wishSlotLock).catch)*5};
+  h += '<div class="sec"><div class="wishCard">'+
+    '<div class="row"><b style="font-size:14px">🛶 平稳打捞</b><span class="pill p-good">安全模式</span></div>'+
+    '<div class="tiny" style="margin:5px 0">产出池：普通 60% / 优良 30% / 稀有 10%，<b>不会产出史诗、传说</b>。无任何惩罚风险。</div>'+
+    '<div class="pityRow"><span>保底 · 10 抽必出稀有</span><b>'+(S.wish.calm||0)+' / 10</b></div>'+
+    '<div class="resCost" style="margin:6px 0">单抽 '+costText(c1)+'　｜　五连 '+costText(c5)+'</div>'+
+    '<button class="btn primary" style="width:100%;justify-content:center;margin-bottom:5px" onclick="startWish(\'calm\',1,'+(wishSlotLock?'\''+wishSlotLock+'\'':'null')+')">🛶 平稳打捞 ×1</button>'+
+    '<button class="btn" style="width:100%;justify-content:center" onclick="startWish(\'calm\',5,'+(wishSlotLock?'\''+wishSlotLock+'\'':'null')+')">🛶 平稳打捞 ×5</button>'+
+    '</div>';
+
+  // 深海祈愿
+  const d1 = wishUnitCost('deep', wishSlotLock);
+  const d5 = {}; Object.keys(d1).forEach(k=>d5[k]=d1[k]*5);
+  h += '<div class="wishCard deep">'+
+    '<div class="row"><b style="font-size:14px">🌊 深海祈愿</b><span class="pill p-epic">高风险高回报</span></div>'+
+    '<div class="tiny" style="margin:5px 0">产出池：优良 42% / 稀有 32% / 史诗 20% / 传说 6%。每次有 <b>20%</b> 触发涡流反噬：本次无收获，并随机重创一件在穿装备（耐久见底则词条直接失效）。触发反噬<b>不会清空保底计数</b>。</div>'+
+    '<div class="pityRow"><span>保底 · 30 抽必出史诗</span><b>'+(S.wish.deepEpic||0)+' / 30</b></div>'+
+    '<div class="pityRow"><span>保底 · 80 抽必出传说</span><b>'+(S.wish.deepLegend||0)+' / 80</b></div>'+
+    '<div class="resCost" style="margin:6px 0">单抽 '+costText(d1)+'　｜　五连 '+costText(d5)+'</div>'+
+    '<button class="btn pink" style="width:100%;justify-content:center;margin-bottom:5px" onclick="startWish(\'deep\',1,'+(wishSlotLock?'\''+wishSlotLock+'\'':'null')+')">🌊 深海祈愿 ×1</button>'+
+    '<button class="btn gold" style="width:100%;justify-content:center" onclick="startWish(\'deep\',5,'+(wishSlotLock?'\''+wishSlotLock+'\'':'null')+')">🌊 深海祈愿 ×5</button>'+
+    '<div class="riskNode riskNote" style="margin-top:7px">⚠️ 抽取前先确认身上装备耐久：赌高品质装备，就要承担弄坏现有装备的风险。</div>'+
+    '</div></div>';
+
+  h += '<div class="sec"><div class="sec-title">抽取结果规则</div>'+
+    '<div class="hint">· 单抽 = 1 轮三选一；五连 = 连续 5 轮三选一。<br>'+
+    '· 每轮展示 3 件候选装备，<b>仅显示品质与部位，词条内容完全隐藏</b>。<br>'+
+    '· 只能选择 1 件带走，另外两件直接沉入深海销毁。<br>'+
+    '· 拿到背包后才解锁完整词条（含负面词条、传说代价词缀）。<br>'+
+    '· 深海祈愿小概率触发<b>涡流奇遇</b>：渔灵馈赠（本次免费 + 负面词条概率降低）或暗流缠绕（放弃退回 / 强行继续则品质 +1 档但反噬概率升至 40%）。<br>'+
+    '· 钓上巨物、传说鱼还有低概率<b>垂钓直落</b>掉装备，无反噬风险。</div></div>';
+  return h;
 }
 
 /* ---- 视图：鱼篓 ---- */
