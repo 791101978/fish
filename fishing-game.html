@@ -750,6 +750,24 @@ header{gap:8px}
 }
 .resChip b{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700}
 .resChip .ico{font-size:13px}
+/* 材料：6 种材料收进一枚芯片 + 点开的浮层（顶栏不再挂 6 个芯片 →
+   任何窗口宽度都是一行，不会挤成好几排） */
+.resWrap{position:relative;flex-shrink:0}
+.matChip{cursor:pointer;font-family:inherit;color:var(--txt)}
+.matChip:hover{border-color:var(--line2);background:var(--panel2)}
+.resWrap.on .matChip{border-color:#4aa8ff;background:var(--panel2)}
+.matChip .caret{color:var(--txt3);font-size:9px;margin-left:1px;line-height:1}
+.resPop{
+  display:none;position:absolute;top:calc(100% + 7px);left:0;z-index:70;
+  grid-template-columns:repeat(2,minmax(104px,1fr));gap:7px 16px;
+  background:rgba(9,20,31,.97);border:1px solid #2b4a63;border-radius:10px;
+  padding:10px 12px;box-shadow:0 10px 26px rgba(0,0,0,.55)
+}
+.resWrap.on .resPop{display:grid}
+.matRow{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+.matRow .mi{font-size:13px;line-height:1}
+.matRow .mk{color:var(--txt2)}
+.matRow b{color:var(--gold);font-variant-numeric:tabular-nums;margin-left:auto}
 /* 顶栏自适应：中段芯片空间不足时换行排列（不再横向滚动藏信息），
    配合下方两档紧凑样式，任何窗口宽度下等级/资源/按钮全部可见 */
 .tb-mid{display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;padding:2px 0}
@@ -904,7 +922,21 @@ header{gap:8px}
   <header>
     <div class="logo"><span class="dot"></span>放松垂钓</div>
     <div class="tb-left" id="tbLeft"></div>
-    <div class="tb-mid" id="tbMid"></div>
+    <!-- 中区固定结构：鱼篓 + 材料弹层（数值单独更新，不整块重建 → 弹层不会闪退） -->
+    <div class="tb-mid" id="tbMid">
+      <div class="basketChip" id="basketChip"><span class="bi">🧺</span>鱼篓 <b id="basketVal">0/0</b><span class="dotMeter" id="basketDots"></span></div>
+      <div class="resWrap" id="matWrap">
+        <button class="resChip matChip" id="matBtn" title="材料一览（点击展开）">🧰 材料<span class="caret">▾</span></button>
+        <div class="resPop" id="matPop">
+          <div class="matRow"><span class="mi">🐟</span><span class="mk">鱼获</span><b id="mvCatch">0</b></div>
+          <div class="matRow"><span class="mi">🐠</span><span class="mk">鱼鳞</span><b id="mvScale">0</b></div>
+          <div class="matRow"><span class="mi">🫧</span><span class="mk">窝料</span><b id="mvEss">0</b></div>
+          <div class="matRow"><span class="mi">🔧</span><span class="mk">维修</span><b id="mvRepair">0</b></div>
+          <div class="matRow"><span class="mi">🪵</span><span class="mk">船骸</span><b id="mvWreck">0</b></div>
+          <div class="matRow"><span class="mi">💠</span><span class="mk">核心</span><b id="mvCore">0</b></div>
+        </div>
+      </div>
+    </div>
     <div class="tb-right">
       <button class="btn sm tb-btn" onclick="openWishModal('equip')" title="祈愿（装备 + 航船）">🙏 祈愿</button>
       <button class="btn sm tb-btn" onclick="openShopModal()" title="商店">🏪 商店</button>
@@ -2906,8 +2938,7 @@ let tabL='equip', tabR='pond';
 function _resChip(ico,k,v){ return '<div class="resChip"><span class="ico">'+ico+'</span>'+k+' <b>'+v+'</b></div>'; }
 function renderResBar(){
   const left = document.getElementById('tbLeft');
-  const mid = document.getElementById('tbMid');
-  if(!left || !mid) return;
+  if(!left) return;
   const bc = basketCount(), bl = basketLimit();
   const nst = nestState();
   /* 左区：等级经验条 + 金币 + 精华 */
@@ -2917,17 +2948,28 @@ function renderResBar(){
     '<div class="lvChip"><div class="lvTop"><b>Lv '+S.lv+'</b><span>'+Math.floor(S.exp)+' / '+fmt(need)+'</span></div>'+
     '<div class="xpBar"><i style="width:'+pct.toFixed(1)+'%"></i></div></div>'+
     _resChip('💰','金币',fmt(S.gold)) + _resChip('💠','精华',fmt(S.ess));
-  /* 中区：鱼篓点阵容量 + 其余资源芯片 */
-  const dots = 14, filled = Math.round(Math.max(0,Math.min(1,bc/bl))*dots);
-  let dm = ''; for(let i=0;i<dots;i++) dm += '<i class="'+(i<filled ? (bc>=bl?'full':'on') : '')+'"></i>';
-  mid.innerHTML =
-    '<div class="basketChip'+(bc>=bl?' full':'')+'"><span class="bi">🧺</span>鱼篓 <b>'+bc+'/'+bl+'</b>'+
-    '<span class="dotMeter">'+dm+'</span></div>'+
-    _resChip('🐟','鱼获',fmt(S.res.catch||0)) + _resChip('🐠','鱼鳞',fmt(S.res.scale||0)) +
-    _resChip('🫧','窝料',fmt(S.res.essence||0)) + _resChip('🔧','维修',fmt(S.res.repair||0)) +
-    _resChip('🪵','船骸',fmt(S.res.wreck||0)) + _resChip('💠','核心',fmt(S.res.core||0));
+  /* 中区：鱼篓（点阵容量）+ 材料弹层。只改数值节点，不重建结构 →
+     弹层打开时每秒刷新也不会闪退 */
+  const bv = document.getElementById('basketVal'); if(bv) bv.textContent = bc+'/'+bl;
+  const bchip = document.getElementById('basketChip'); if(bchip) bchip.classList.toggle('full', bc>=bl);
+  const dots = document.getElementById('basketDots');
+  if(dots){
+    const N = 14, filled = Math.round(Math.max(0,Math.min(1,bc/bl))*N);
+    let dm = ''; for(let i=0;i<N;i++) dm += '<i class="'+(i<filled ? (bc>=bl?'full':'on') : '')+'"></i>';
+    dots.innerHTML = dm;
+  }
+  const setV = (id,v)=>{ const el = document.getElementById(id); if(el) el.textContent = fmt(v||0); };
+  setV('mvCatch', S.res.catch); setV('mvScale', S.res.scale); setV('mvEss', S.res.essence);
+  setV('mvRepair', S.res.repair); setV('mvWreck', S.res.wreck); setV('mvCore', S.res.core);
   document.getElementById('btnNest').textContent = '🪣 打窝' + (nst.active? ' · '+Math.ceil(nst.remain/1000)+'s' : '');
 }
+/** 材料浮层开合：点芯片切换，点页面其他地方自动收起 */
+function toggleMatPop(ev){
+  if(ev) ev.stopPropagation();
+  const w = document.getElementById('matWrap');
+  if(w) w.classList.toggle('on');
+}
+function closeMatPop(){ const w = document.getElementById('matWrap'); if(w) w.classList.remove('on'); }
 function renderBanners(){
   const el = document.getElementById('bannerRow');
   const nst = nestState();
@@ -5080,7 +5122,17 @@ function boatDeckProfile(id, img){
     const bots = new Array(w).fill(-1);
     for(let x=0;x<w;x++){ for(let y=h-1;y>=0;y--){ if(A(x,y)>32){ bots[x]=y; break; } } }
     const keel = Math.max.apply(null, bots);
-    const wide = Math.max(4, Math.round(w*0.06));        // 船体行宽阈值（细窄物 < 此宽）
+    /* 船体行宽阈值 = 全船最宽行 × 28%：只有「船体/甲板」这种成片宽度才算数，
+       烟囱/桅杆/吊臂等细窄物（远窄于船体）一律排除 —— 比固定像素阈值稳 */
+    let maxRun = 0;
+    for(let y=0;y<h;y++){
+      let run = 0;
+      for(let x=0;x<w;x++){
+        if(A(x,y)>32){ run++; if(run>maxRun) maxRun = run; }
+        else run = 0;
+      }
+    }
+    const wide = Math.max(4, Math.round(maxRun * 0.28));
     const prof = new Float32Array(w);
     for(let x=0;x<w;x++){
       let y = bots[x];
@@ -5119,10 +5171,11 @@ function pxDrawBoat(){
   c.translate(cx, cy);
   c.rotate(rad);
   /* 人物/狗脚线 = 实测甲板线（自动适配 10 种船形），解析失败回退旧整图比例。
-     脚再下沉少许 → 船舷盖住脚踝，人/狗是「坐进」船里。 */
+     脚线再按各自身高下沉：人沉 45% → 只露上半身（腰正好在船舷线上），真正「坐进船里」；
+     狗沉 18% → 身子略入舱、头背仍露在舷外。 */
   const dk = boatDeckProfile(bid, img);
   const scaleDN = H / img.naturalHeight;
-  const capY = dk ? dk.keel - img.naturalHeight*0.65 : -1;   // 桅杆/烟囱误判兜底
+  const capY = dk ? dk.keel - img.naturalHeight*0.78 : -1;   // 甲板线兜底（防异常图形误判）
   const deckY = (col, fb)=>{
     if(!dk) return fb * img.naturalHeight;
     const v = dk.prof[Math.max(0, Math.min(dk.prof.length-1, Math.round(col)))];
@@ -5131,16 +5184,16 @@ function pxDrawBoat(){
   const deckP = deckY((1 - geo.seat[0]) * (img.naturalWidth - 1), geo.seat[1]);
   const deckD = deckY((1 - geo.dog[0])  * (img.naturalWidth - 1), geo.dog[1]);
   /* 钓手：坐船尾（镜像后船尾在右端），人面朝左（持竿方向，素材本身朝左）。
-     人先画、船体后画 → 船舷挡住下半身，人是「坐进」船里而非贴在船板上。
-     人高随船长等比缩放（参考图 人高≈船长0.27，狗高≈0.15），大船上不再显小 */
+     人先画、船体后画 → 船舷挡住下半身，人是「坐进」船里而非坐在船板上。
+     人高随船长等比缩放（参考图 人高≈船长0.27，狗高≈0.13），大船上不再显小 */
   const P = BOAT_PERSON_EL, ph = Math.max(38, Math.min(58, Math.round(W*0.27))), pw = Math.round(ph * P.naturalWidth / P.naturalHeight);
   const px0 = Math.round(-W/2 + geo.seat[0]*W - pw/2);
-  const py0 = Math.round(topY + deckP + Math.max(2, H*0.06) - ph);
+  const py0 = Math.round(topY + deckP + ph*0.45 - ph);
   c.drawImage(P, px0, py0, pw, ph);
   /* 金毛：坐船头（镜像后船头在左端），狗素材朝右 → 镜像成朝前（左）看水 */
   const D = BOAT_DOG_EL, dh = Math.max(20, Math.min(28, Math.round(W*0.13))), dw = Math.round(dh * D.naturalWidth / D.naturalHeight);
   const dx0 = Math.round(-W/2 + geo.dog[0]*W - dw/2);
-  const dy0 = Math.round(topY + deckD + Math.max(1, H*0.03) - dh + Math.sin(PX.frame*0.31)*0.8);
+  const dy0 = Math.round(topY + deckD + dh*0.18 - dh + Math.sin(PX.frame*0.31)*0.8);
   c.save();
   c.scale(-1, 1);
   c.drawImage(D, -dx0 - dw, dy0, dw, dh);
@@ -7518,6 +7571,11 @@ function bindShell(){
   document.getElementById('btnMenuL').onclick = ()=>openDrawer('colL');
   document.getElementById('btnMenuR').onclick = ()=>openDrawer('colR');
   document.getElementById('btnNest').onclick = openNest;
+  // 材料浮层：点芯片开合，点页面其他位置 / Esc 收起
+  const matBtn = document.getElementById('matBtn');
+  if(matBtn) matBtn.onclick = toggleMatPop;
+  document.addEventListener('click', closeMatPop);
+  document.addEventListener('keydown', ev=>{ if(ev.key==='Escape') closeMatPop(); });
   document.getElementById('btnAccount').onclick = openAccount;
   document.getElementById('btnMute').onclick = (e)=>{ S.mute=!S.mute; e.currentTarget.textContent = S.mute?'🔇':'🔊'; toast(S.mute?'已关闭播报':'已开启播报','good'); save(); };
   // 窗口右上角开关（与 header 按钮共享状态）
