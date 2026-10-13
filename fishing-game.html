@@ -18,13 +18,33 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%}
 body{
-  background:radial-gradient(1200px 700px at 15% -10%,#163b57 0%,transparent 55%),
-             radial-gradient(900px 600px at 110% 10%,#123c4a 0%,transparent 50%),
-             var(--bg);
+  /* 深海蓝渐变：上层偏暗蓝，下层偏黑蓝，加淡水纹噪点 */
+  background-color:#050c14;
+  background-image:
+    radial-gradient(1200px 620px at 18% -12%,rgba(30,84,122,.55) 0%,transparent 58%),
+    radial-gradient(900px 560px at 108% 8%,rgba(20,74,92,.42) 0%,transparent 52%),
+    linear-gradient(180deg,#0a1b2b 0%,#07131f 45%,#040a12 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='wn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .02' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .55 0 0 0 0 .72 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23wn)'/%3E%3C/svg%3E");
   color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
   font-size:14px; line-height:1.55; overflow:hidden;
 }
+/* 局部气泡 / 星点：固定层，极淡，不抢画面 */
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%,rgba(160,214,255,.5) 0,transparent 100%),
+    radial-gradient(1px 1px at 78% 12%,rgba(160,214,255,.42) 0,transparent 100%),
+    radial-gradient(1.5px 1.5px at 62% 74%,rgba(140,200,250,.35) 0,transparent 100%),
+    radial-gradient(1px 1px at 32% 88%,rgba(160,214,255,.4) 0,transparent 100%),
+    radial-gradient(2px 2px at 90% 62%,rgba(120,190,255,.24) 0,transparent 100%),
+    radial-gradient(1px 1px at 46% 40%,rgba(160,214,255,.34) 0,transparent 100%),
+    radial-gradient(1.5px 1.5px at 6% 62%,rgba(140,200,250,.3) 0,transparent 100%),
+    radial-gradient(1px 1px at 70% 34%,rgba(160,214,255,.28) 0,transparent 100%);
+  animation:starDrift 26s ease-in-out infinite alternate;
+}
+@keyframes starDrift{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+#app{position:relative;z-index:1}
 button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
@@ -73,7 +93,8 @@ header{
 @media(max-width:1080px){.only-mobile{display:inline-flex}}
 
 .sec{padding:9px 11px;border-bottom:1px solid var(--line)}
-.sec-title{font-size:11px;color:var(--txt3);letter-spacing:1.5px;font-weight:700;margin-bottom:7px;text-transform:uppercase}
+.sec-title{font-size:11px;color:#8fb8d4;letter-spacing:1.5px;font-weight:800;margin-bottom:7px;text-transform:uppercase;
+  text-shadow:0 0 8px rgba(90,170,220,.28)}
 .scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 
 /* ---------- 渔场 ---------- */
@@ -110,6 +131,21 @@ header{
   border:2px solid var(--line2);border-radius:8px;overflow:hidden;
   background:#0a1a26;image-rendering:pixelated;image-rendering:-moz-crisp-edges;
   box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(90,180,230,.12);
+  transition:box-shadow .45s ease, border-color .45s ease;
+}
+/* 主画面外发光：平时蓝微光 → 咬钩绿 → 巨物拉扯金/红 */
+.pixelWin{box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(90,180,230,.12), 0 0 18px rgba(74,168,255,.16)}
+.pixelWin.glow-bite{
+  border-color:#4fd08a;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(79,208,138,.4), 0 0 26px rgba(79,208,138,.4)
+}
+.pixelWin.glow-big{
+  border-color:#ffc340;
+  animation:bigGlow 1.1s ease-in-out infinite
+}
+@keyframes bigGlow{
+  0%,100%{box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(255,195,64,.45), 0 0 22px rgba(255,195,64,.32)}
+  50%{box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(255,95,109,.55), 0 0 30px rgba(255,95,109,.45)}
 }
 .pixelWin canvas{
   display:block;width:100%;height:100%;
@@ -170,12 +206,16 @@ header{
   .basketWarn{font-size:9.5px;top:6px;left:6px}
 }
 /* 日志（中栏下半部：日志聊天面板） */
-.logBox{flex:1;min-height:150px;overflow-y:auto;background:rgba(7,19,29,.62);border:1px solid var(--line);
-  border-radius:12px;padding:8px 10px;font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+.logBox{flex:1;min-height:150px;overflow-y:auto;
+  background:linear-gradient(180deg,rgba(3,9,15,.72),rgba(4,13,20,.62));
+  border:1px solid #1d3a50;border-radius:3px;padding:7px 10px;
+  backdrop-filter:blur(2px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  font-size:12.5px;display:flex;flex-direction:column;gap:3px;justify-content:flex-end}
 .logLine{animation:slideIn .35s ease-out;line-height:1.5;word-break:break-word}
+.logLine .tm{color:#5f8098;font-size:10.5px;margin-right:5px;font-variant-numeric:tabular-nums;opacity:.8}
 @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
 .logLine .nm{font-weight:700}
-.logLine .tm{color:var(--txt3);font-size:11px;margin-right:5px}
 .log-sys{color:var(--txt2)}
 .log-big{background:rgba(255,203,82,.1);border-left:2px solid var(--gold);padding:2px 7px;border-radius:0 6px 6px 0}
 .log-rare{background:rgba(74,168,255,.1);border-left:2px solid var(--rare);padding:2px 7px;border-radius:0 6px 6px 0}
@@ -188,16 +228,19 @@ header{
 /* 底部动作条 */
 .actionBar{display:flex;gap:7px;flex-wrap:wrap}
 .btn{
-  padding:7px 13px;border-radius:9px;font-size:12.5px;font-weight:600;
-  background:var(--panel2);border:1px solid var(--line2);transition:.15s;
+  padding:7px 13px;border-radius:3px;font-size:12.5px;font-weight:600;
+  background:rgba(23,49,72,.55);border:1px solid #2b4a63;color:#a8c4d6;transition:.15s;
   display:inline-flex;align-items:center;gap:5px;white-space:nowrap
 }
-.btn:hover{background:#1e4059;border-color:#3b7799;transform:translateY(-1px)}
+.btn:hover{background:rgba(31,63,90,.8);border-color:#3b7799;color:#e2f2fb;transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
-.btn.primary{background:linear-gradient(135deg,#1f7fd4,#1a5fa8);border-color:#3b9be0;color:#fff}
+.btn.primary{background:linear-gradient(135deg,#1f7fd4,#1a5fa8);border-color:#3b9be0;color:#fff;
+  box-shadow:0 0 0 1px rgba(59,155,224,.3)}
 .btn.primary:hover{background:linear-gradient(135deg,#2590ea,#2070c0)}
-.btn.gold{background:linear-gradient(135deg,#d19b1f,#a87413);border-color:#ffcb52;color:#fff5d6}
-.btn.gold:hover{background:linear-gradient(135deg,#e8ad26,#bd8517)}
+.btn.gold{background:linear-gradient(135deg,#b8891c,#8f6b12);border-color:#e0b23c;color:#fff5d6}
+.btn.gold:hover{background:linear-gradient(135deg,#d19b1f,#a87413)}
+.btn.pink{background:linear-gradient(135deg,#a1477f,#7d3562);border-color:#c96bb0;color:#ffe3f6}
+.btn.pink:hover{background:linear-gradient(135deg,#b85594,#8f4172)}
 .btn.pink{background:linear-gradient(135deg,#c0419a,#8d2f74);border-color:#ff6ec7;color:#ffe6f7}
 .btn.sm{padding:4px 9px;font-size:11.5px;border-radius:7px}
 .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5);transform:none!important}
@@ -205,8 +248,13 @@ header{
 
 /* ---------- 卡片/通用 ---------- */
 .tabs{display:flex;gap:4px;padding:7px 9px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
-.tab{padding:5px 11px;border-radius:8px;font-size:12.5px;font-weight:600;white-space:nowrap;color:var(--txt2)}
-.tab.on{background:var(--panel2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line2)}
+/* 标签：选中深色底+蓝描边+细像素指示器；未选中半透明灰蓝 */
+.tab{position:relative;padding:5px 11px;border-radius:3px;font-size:12px;font-weight:600;white-space:nowrap;
+  color:#7fa3bd;background:rgba(23,49,72,.42);border:1px solid transparent;transition:.14s}
+.tab:hover{color:#cfe6f5;background:rgba(31,63,90,.55)}
+.tab.on{color:#e2f2fb;background:#17334c;border-color:#3b7799;box-shadow:inset 0 0 0 1px rgba(74,168,255,.25)}
+.tab.on::after{content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:2px;
+  background:repeating-linear-gradient(90deg,#4aa8ff 0 3px,transparent 3px 6px)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px}
 .card.hl{border-color:var(--line2);background:linear-gradient(160deg,var(--panel2),var(--panel))}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -225,6 +273,7 @@ header{
 .p-mystic{color:var(--mystic);border-color:var(--mystic);background:linear-gradient(90deg,rgba(255,110,199,.16),rgba(255,195,64,.1))}
 .t-common{color:var(--common)} .t-good{color:var(--good)} .t-rare{color:var(--rare)}
 .t-epic{color:var(--epic)} .t-legend{color:var(--legend)} .t-mystic{color:var(--mystic)}
+.t-bad{color:#ff8a95}
 
 /* 装备 */
 .eqGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
@@ -349,6 +398,22 @@ header{
 .eqCard .ec-slot{font-size:9.5px;color:#7fa3bd;margin-top:1px}
 .eqCard .ec-tag{position:absolute;top:6px;right:6px;font-size:9px;font-weight:800;letter-spacing:.5px;
   padding:1px 5px;border-radius:2px;border:1px solid currentColor;background:rgba(6,16,26,.6)}
+/* 低耐久 / 失效：卡片右上角红色警示图标（盖在品质标签左侧） */
+.eqCard .ec-warn{position:absolute;top:6px;right:52px;font-size:12px;line-height:1;
+  color:#ff5f6d;text-shadow:0 0 6px rgba(255,95,109,.8);animation:durBlink .9s steps(2) infinite}
+/* 传说装备：很淡的金色粒子 */
+.r-legend::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    radial-gradient(1.5px 1.5px at 18% 26%,rgba(255,203,82,.85) 0,transparent 100%),
+    radial-gradient(1px 1px at 64% 18%,rgba(255,203,82,.6) 0,transparent 100%),
+    radial-gradient(1.5px 1.5px at 84% 62%,rgba(255,224,130,.7) 0,transparent 100%),
+    radial-gradient(1px 1px at 36% 78%,rgba(255,203,82,.55) 0,transparent 100%),
+    radial-gradient(1px 1px at 52% 44%,rgba(255,224,130,.45) 0,transparent 100%);
+  animation:legendSpark 4.5s ease-in-out infinite alternate}
+@keyframes legendSpark{
+  0%{opacity:.28;transform:translateY(0)}
+  100%{opacity:.62;transform:translateY(-2px)}
+}
 .eqCard .ec-w{margin-top:7px;display:flex;flex-direction:column;gap:3px}
 .eqCard .ec-w .w{font-size:10.5px;line-height:1.3;display:flex;gap:4px;align-items:baseline;min-width:0}
 .eqCard .ec-w .w b{font-weight:800;flex:none;font-size:11px}
@@ -356,7 +421,7 @@ header{
 .eqCard .ec-w .w .wt.up{color:#7fe0aa}
 .eqCard .ec-w .w .wt.dn{color:#ff9a6b}
 .eqCard .ec-w .w .wt.lg{color:#ffd77a;font-weight:700}
-.eqCard .ec-f{margin-top:7px}
+.eqCard .ec-f{margin-top:7px;padding-right:26px}   /* 给右下角🔍按钮留位，避免压住耐久文字 */
 .eqCard .ec-detail{position:absolute;bottom:6px;right:6px;width:21px;height:21px;
   display:flex;align-items:center;justify-content:center;font-size:10px;
   background:#0b1a28;border:1px solid #2b4a63;border-radius:2px;color:#9dbcce;cursor:pointer}
@@ -380,7 +445,9 @@ header{
 .eqCard.broken{filter:grayscale(.8)}
 .eqCard.broken .ec-n{color:#7d8b96 !important}
 
-/* ---- 耐久条（>60% 绿 / 30-60% 黄 / <30% 红闪 / 0 灰）---- */
+/* ---- 耐久：条 + 文字同行（文字靠右），>60% 绿 / 30-60% 黄 / <30% 红闪 / 0 灰 ---- */
+.durRow{display:flex;align-items:center;gap:7px;margin-top:2px}
+.durRow .durBar{flex:1;min-width:0;margin-top:0}
 .durBar{height:7px;background:#081420;border:1px solid #1c3a50;border-radius:2px;overflow:hidden}
 .durBar i{display:block;height:100%;transition:width .3s,background .3s}
 .durBar.ok i{background:linear-gradient(90deg,#2f9e63,#4fd08a)}
@@ -388,7 +455,7 @@ header{
 .durBar.low i{background:linear-gradient(90deg,#a12b36,#ff5f6d);animation:durBlink .8s steps(2) infinite}
 .durBar.zero i{background:#39444e}
 @keyframes durBlink{50%{opacity:.3}}
-.durTxt{font-size:10px;margin-top:2px;font-variant-numeric:tabular-nums;color:#7fa3bd;letter-spacing:.3px}
+.durTxt{font-size:10px;font-variant-numeric:tabular-nums;color:#7fa3bd;letter-spacing:.3px;flex:none;white-space:nowrap}
 .durTxt.ok{color:#6fd6a0} .durTxt.mid{color:#ffc94a}
 .durTxt.low{color:#ff8a95;font-weight:800}
 .durTxt.zero{color:#7d8b96}
@@ -488,6 +555,32 @@ header{
   .pickCard{padding:10px 4px;min-height:96px}
   #eqTip{width:236px}
 }
+
+/* ---- 右栏模块卡片 ---- */
+.modCard{border:2px solid #22445c;border-radius:3px;padding:8px 10px;margin-bottom:7px;
+  background:linear-gradient(170deg,#132a3d,#0c1d2b);
+  transition:border-color .2s, box-shadow .2s}
+.modCard:hover{border-color:#2f5c7d;box-shadow:0 0 0 1px rgba(74,168,255,.1)}
+.modCard .mc-h{display:flex;align-items:center;gap:6px;margin-bottom:6px;
+  padding-bottom:5px;border-bottom:2px solid #1d3a50}
+.modCard .mc-ico{font-size:13px;line-height:1}
+.modCard .mc-t{font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#cfe6f5;
+  text-shadow:0 0 6px rgba(90,170,220,.2)}
+.modCard .mc-row{display:flex;justify-content:space-between;align-items:baseline;
+  padding:2.5px 0;font-size:11.5px;color:var(--txt2)}
+.modCard .mc-row b{font-variant-numeric:tabular-nums;color:#e2f2fb;font-weight:700}
+.modCard .mc-desc{font-size:10.5px;color:#6d90a8;line-height:1.55;margin-top:5px}
+.modCard .mc-ok{font-size:10.5px;color:#6fd6a0;margin-top:5px}
+.modCard .mc-bad{font-size:10.5px;color:#ff9aa2;margin-top:5px;line-height:1.5}
+.modCard .mc-sum{font-size:10.5px;color:#7fa3bd;margin-top:5px;padding-top:4px;
+  border-top:1px dashed rgba(255,255,255,.08)}
+.modCard .mc-sum b{color:#e2f2fb}
+.modCard .mc-tip{font-size:11px;color:#a8c4d6;line-height:1.6;padding:2px 0}
+.achvRow{padding:3px 0}
+.achvRow .ah-t{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--txt2)}
+.achvRow .ah-t b{font-variant-numeric:tabular-nums;color:#9dbcce}
+.achvRow.done .ah-t{color:#8fd8b8}
+.achvRow.done .ah-t b{color:#4fd08a}
 
 /* 鱼篓 */
 .fishItem{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:8px;
@@ -1151,6 +1244,7 @@ function newSave(){
     stats:{ totalCasts:0, totalFish:0, totalGold:0, totalEss:0, bigFish:0, best:null,
             rareGain:{common:0,good:0,rare:0,epic:0,legend:0,mystic:0} },
     daily:{ date: todayStr(), fishScore:0, rareScore:0, rewards:[] },
+    today:{ date: todayStr(), fish:{} },
     food:{ lastClaim:0 },
     mute:false,
     pxAnim:true,
@@ -1192,6 +1286,7 @@ function hydrate(d){
     }
   });
   if(s.daily.date !== todayStr()){ s.daily = base.daily; }
+  if(!s.today || s.today.date !== todayStr() || typeof s.today.fish !== 'object') s.today = {date:todayStr(), fish:{}};
   if(!s.basket || typeof s.basket !== 'object') s.basket = {};
   return s;
 }
@@ -1599,10 +1694,11 @@ function pushLog(html, cls){
   renderLog();
 }
 let logDirty=false, logRaf=0;
+const LOG_SHOW = 6;   // 画面上最多保留 6 行，避免刷屏影响观感
 function renderLog(){
   const box = document.getElementById('logBox'); if(!box) return;
   const frag = document.createDocumentFragment();
-  logs.slice(-LOG_MAX).forEach(l=>{
+  logs.slice(-LOG_SHOW).forEach(l=>{
     const d = document.createElement('div');
     d.className = 'logLine '+(l.cls||'');
     d.innerHTML = '<span class="tm">'+l.t+'</span>'+l.html;
@@ -1846,6 +1942,8 @@ function resolveCast(ctx, cut){
     S.basket[fish.id] = S.basket[fish.id] || {fish, n:0};
     S.basket[fish.id].n += qty;
     S.stats.totalFish += qty;
+    if(!S.today || S.today.date !== todayStr() || typeof S.today.fish !== 'object') S.today = {date:todayStr(), fish:{}};
+    S.today.fish[fish.name] = (S.today.fish[fish.name]||0) + qty;
     S.stats.rareGain[r] = (S.stats.rareGain[r]||0) + qty;
     S.daily.fishScore += RARITY[r].exp * qty * 3;
     if(RARITY[r].order>=2) S.daily.rareScore += RARITY[r].exp * qty * 6;
@@ -2701,16 +2799,17 @@ function durState(it){
   const p = mx > 0 ? it.dur/mx : 0;
   return p > 0.6 ? 'ok' : (p > 0.3 ? 'mid' : 'low');
 }
-/** 耐久条 HTML（卡片 / 详情 / 浮窗共用） */
+/** 耐久条 HTML：条在左、文字靠右同行（卡片 / 详情 / 浮窗共用） */
 function durBarHtml(it){
   const mx = itemDurMax(it);
   const pct = mx > 0 ? Math.max(0, Math.min(100, it.dur/mx*100)) : 0;
   const s = durState(it);
-  let h = '<div class="durBar '+s+'"><i style="width:'+pct.toFixed(1)+'%"></i></div>'+
-    '<div class="durTxt '+s+'">耐久 '+Math.round(it.dur)+' / '+mx+'</div>';
-  if(s === 'low') h += '<div class="durWarn">耐久偏低，钓巨物有词条失效风险</div>';
-  if(s === 'zero') h += '<div class="durTxt zero">词条已失效，需维修</div>';
-  return h;
+  return '<div class="durRow">'+
+    '<div class="durBar '+s+'"><i style="width:'+pct.toFixed(1)+'%"></i></div>'+
+    '<span class="durTxt '+s+'">耐久 '+Math.round(it.dur)+' / '+mx+'</span>'+
+    '</div>'+
+    (s === 'low' ? '<div class="durWarn">耐久偏低，钓巨物有词条失效风险</div>' : '')+
+    (s === 'zero' ? '<div class="durWarn" style="color:#7d8b96">词条已失效，需维修</div>' : '');
 }
 /** 词条列表 HTML */
 function wordsHtml(it){
@@ -2721,10 +2820,16 @@ function wordsHtml(it){
   ).join('');
 }
 
-/* 属性分组：降低单屏阅读压力 */
+/* 属性分组 + 每项小图标（降低单屏阅读压力） */
+const STAT_ICONS = {
+  speed:'🎣', depth:'📏', crit:'💥', nestT:'⏱️',
+  big:'🐋', rareUp:'✨', lineResist:'🛡️', hookResist:'🪝',
+  resource:'💰', capacity:'🧺',
+};
 const STAT_GROUPS = [
   {t:'垂钓效率', ico:'⏱️', keys:['speed','depth','crit','nestT']},
-  {t:'捕获生存', ico:'🛡️', keys:['big','rareUp','lineResist','hookResist','resource','capacity']},
+  {t:'捕获生存', ico:'🛡️', keys:['big','rareUp','lineResist','hookResist']},
+  {t:'资源收益', ico:'💰', keys:['resource','capacity']},
 ];
 /* 上一次渲染的属性值，用于「换装时数字平滑过渡」的高亮闪烁 */
 let _lastPanelStats = null;
@@ -2734,7 +2839,8 @@ function eqCardWords(wv, max){
   if(!wv.length) return '<div class="w" style="color:#7fa3bd">无词条</div>';
   let s = wv.slice(0,max).map(w=>{
     const cls = w.legend ? 'lg' : (w.neg ? 'dn' : 'up');
-    return '<div class="w"><b class="'+(w.neg?'dn':'up')+'">'+(w.neg?'−':'+')+'</b>'+
+    const pre = w.legend ? '★' : (w.neg ? '−' : '+');
+    return '<div class="w"><b class="'+(w.neg?'dn':'up')+'">'+pre+'</b>'+
       '<span class="wt '+cls+'">'+esc(w.name)+'　'+esc(w.text)+'</span></div>';
   }).join('');
   if(wv.length > max) s += '<div class="w" style="color:#7fa3bd">… 共 '+wv.length+' 条词条</div>';
@@ -2776,10 +2882,13 @@ function viewEquip(){
       return;
     }
     const rc = EQ_RARITY[it.rarity];
+    const ds = durState(it);
     h += '<div class="eqCard r-'+rc.cls+(it.dur<=0?' broken':'')+'" '+
       'onmouseenter="showEqTip(event,\''+it.uid+'\')" onmousemove="moveEqTip(event)" onmouseleave="hideEqTip()" '+
       'onclick="openEquip(\''+sl.id+'\')">'+
       '<span class="ec-tag t-'+rc.cls+'">'+rc.name+'</span>'+
+      (ds==='low'?'<span class="ec-warn" title="耐久偏低">⚠</span>':'')+
+      (ds==='zero'?'<span class="ec-warn" title="词条已失效" style="animation:none">💥</span>':'')+
       '<div class="ec-h"><span class="ec-ico">'+sl.ico+'</span><div style="min-width:0;flex:1">'+
       '<div class="ec-n t-'+rc.cls+'">'+eqFullName(it)+'</div>'+
       '<div class="ec-slot">'+sl.name+' · '+sl.act+'</div></div></div>'+
@@ -3127,21 +3236,79 @@ function viewBait(){
 }
 
 /* ---- 视图：渔场 ---- */
+/** 右栏通用模块卡片 */
+function modCard(title, ico, inner, extraCls){
+  return '<div class="modCard '+(extraCls||'')+'"><div class="mc-h"><span class="mc-ico">'+ico+'</span>'+
+    '<span class="mc-t">'+title+'</span></div>'+inner+'</div>';
+}
 function viewPond(){
   const spot = SPOTS.find(s=>s.id===S.spot);
   const st = eqStats();
   const nst = nestState();
   const ev = spotEventActive();
-  let h = `<div class="sec"><div class="sec-title">当前渔场</div>
-    <div class="card hl"><div class="row"><b class="t-rare" style="font-size:15px">🌊 ${spot.name}</b><span class="pill p-rare">需 Lv.${spot.minLv}</span></div>
-    <div class="tiny" style="margin-top:5px">${spot.desc}</div>
-    <div class="kv" style="margin-top:7px"><span>基础出货率</span><b>×${spot.rate.toFixed(2)}</b></div>
-    <div class="kv"><span>水产深度</span><b>${st.depth} / 需求 ${spot.depth}</b></div>
-    <div class="kv"><span>巨物</span><b class="t-legend">${spot.bigFish}</b></div>
-    <div class="kv"><span>同场打窝钓友</span><b>${S.satietyCount||0} 人</b></div>
-    </div>
-    ${st.depth < spot.depth? '<div class="hint" style="color:#ff9aa2">⚠️ 垂钓深度不足，该渔场稀有鱼概率被压制，建议升级「鱼线」</div>':'<div class="grec">✓ 深度达标，稀有鱼概率全额生效</div>'}
-    <div class="hint" style="margin-top:6px">⚙️ <b>渔场机制</b>：${spot.mechText||'无特殊机制。'}</div>
+
+  /* ---- 模块 1：当前渔场 ---- */
+  let h = '<div class="sec"><div class="sec-title">渔场概况</div>';
+  const depthOk = st.depth >= spot.depth;
+  h += modCard('【'+spot.name+'】','🌊',
+    '<div class="mc-row"><span>推荐深度</span><b class="'+(depthOk?'t-good':'t-bad')+'">'+spot.depth+'（当前 '+st.depth+'）</b></div>'+
+    '<div class="mc-row"><span>巨物</span><b class="t-legend">'+esc(spot.bigFish)+'</b></div>'+
+    '<div class="mc-row"><span>基础出货率</span><b>×'+spot.rate.toFixed(2)+'</b></div>'+
+    '<div class="mc-row"><span>等级门槛</span><b>Lv.'+spot.minLv+'</b></div>'+
+    '<div class="mc-desc">'+esc(spot.desc)+'</div>'+
+    (depthOk?'<div class="mc-ok">✓ 深度达标，稀有鱼概率全额生效</div>'
+            :'<div class="mc-bad">⚠ 垂钓深度不足，稀有鱼概率被压制，建议升级「鱼线」</div>'));
+
+  /* ---- 模块 2：鱼获统计 ---- */
+  const tf = (S.today && S.today.date === todayStr() && S.today.fish) ? S.today.fish : {};
+  const names = Object.keys(tf).sort((a,b)=>tf[b]-tf[a]).slice(0,6);
+  let statInner = '';
+  if(names.length){
+    names.forEach(n=>{ statInner += '<div class="mc-row"><span>'+esc(n)+'</span><b>×'+fmt(tf[n])+'</b></div>'; });
+    const tot = names.reduce((s,n)=>s+tf[n],0);
+    statInner += '<div class="mc-sum">今日合计 <b>'+fmt(tot)+'</b> 条</div>';
+  }else{
+    statInner = '<div class="mc-desc">今天还没开张，挂一会儿就有了。</div>';
+  }
+  h += modCard('今日鱼获','📈', statInner);
+
+  /* ---- 模块 3：成就进度 ---- */
+  const achv = [
+    {n:'钓获 100 条鱼',   cur:S.stats.totalFish, goal:100},
+    {n:'累计捕获 10 条巨物', cur:S.stats.bigFish,  goal:10},
+    {n:'累计赚取 10000 金币', cur:S.stats.totalGold, goal:10000},
+  ];
+  let aInner = '';
+  achv.forEach(a=>{
+    const pct = Math.min(100, a.cur/a.goal*100);
+    const done = a.cur >= a.goal;
+    aInner += '<div class="achvRow'+(done?' done':'')+'">'+
+      '<div class="ah-t"><span>'+(done?'🏅 ':'◇ ')+a.n+'</span><b class="'+(done?'t-good':'')+'">'+
+      (done?'已完成':fmt(Math.min(a.cur,a.goal))+' / '+fmt(a.goal))+'</b></div>'+
+      '<div class="bar" style="margin-top:3px"><i style="width:'+pct.toFixed(0)+'%;background:'+(done?'linear-gradient(90deg,#2f9e63,#4fd08a)':'linear-gradient(90deg,#1f7fd4,#4aa8ff)')+'"></i></div>'+
+      '</div>';
+  });
+  h += modCard('成就进度','🏅', aInner);
+
+  /* ---- 模块 4：提示信息 ---- */
+  let tips = [];
+  SLOTS.forEach(sl=>{
+    const it = S.equip[sl.id]; if(!it) return;
+    const s = durState(it);
+    if(s==='low') tips.push('⚠ <b>'+sl.name+'</b> 耐久偏低，巨物拉扯可能导致词条失效');
+    if(s==='zero') tips.push('💥 <b>'+sl.name+'</b> 词条已失效，请用维修材料修复');
+  });
+  const bc2 = basketCount(), bl2 = basketLimit();
+  if(bl2 - bc2 <= 5) tips.push('🧺 鱼篓即将满仓（'+bc2+'/'+bl2+'），满仓会暂停挂机');
+  if(!depthOk) tips.push('📏 垂钓深度不足，本渔场稀有鱼概率被压制');
+  if(!S.auto) tips.push('⏸️ 挂机已暂停，点下方「开始挂机」恢复');
+  if(!tips.length) tips.push('💡 装备耐久低于 30% 时，巨物拉扯可能导致词条失效');
+  h += modCard('提示','💡', tips.slice(0,3).map(t=>'<div class="mc-tip">'+t+'</div>').join(''));
+  h += '</div>';
+
+  /* ---- 渔场机制与概率详情 ---- */
+  h += `<div class="sec"><div class="sec-title">渔场机制</div>
+    <div class="hint" style="margin-bottom:5px">⚙️ ${spot.mechText||'无特殊机制。'}</div>
     ${ev==='wind'?'<div class="hint" style="color:#ffd28a">🌬️ 海风大作中：上钩判定可能被风浪打断</div>':''}
     ${ev==='ice'?'<div class="hint" style="color:#bfe6ff">🧊 浮冰经过中：鱼群受扰，高阶概率临时下降</div>':''}
     ${ev==='abyss'?'<div class="hint" style="color:#ff9aa2">🌀 深渊暗流爆发中：张力飙升，切线率大幅上升</div>':''}
@@ -3728,6 +3895,16 @@ function pxSyncWindowCls(){
   w.classList.toggle('tide', ENV.tideUntil > Date.now());
   w.classList.toggle('frenzy', (ENV.frenzyUntil||0) > Date.now());
   w.classList.toggle('full', typeof basketCount==='function' && S && basketCount() >= basketLimit());
+  /* 主画面外发光：平时蓝微光 → 咬钩绿 → 巨物拉扯金/红 */
+  const st = PX.scene.state;
+  const bigPull = (st==='bite' && PX.scene.fishSize==='big') || st==='lost';
+  const glow = (st==='reel' && PX.scene.fishSize==='big') || bigPull ? 'glow-big'
+             : (st==='bite' || st==='reel') ? 'glow-bite' : '';
+  if(w._glow !== glow){
+    if(w._glow) w.classList.remove(w._glow);
+    if(glow) w.classList.add(glow);
+    w._glow = glow;
+  }
 }
 function pxShake(){
   const w = document.getElementById('pixelWin');
