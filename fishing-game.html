@@ -4129,19 +4129,19 @@ const BOAT_IMG = {
    seat/dog 均为镜像后坐标：seat = 船尾（右端，人面向左），dog = 船头（左端）。
    尺寸对齐参考图比例：船长约画布 0.26，人高≈船长0.27，狗高≈船长0.15 */
 const BOAT_GEO = {
-  canoe:{w:132,keel:0.12,seat:[0.64,0.62],dog:[0.20,0.55]},
-  dinghy:{w:141,keel:0.12,seat:[0.62,0.66],dog:[0.19,0.58]},
-  motor:{w:150,keel:0.12,seat:[0.60,0.72],dog:[0.24,0.62]},
-  steel:{w:172,keel:0.12,seat:[0.58,0.78],dog:[0.17,0.55]},
-  trawler:{w:185,keel:0.12,seat:[0.56,0.73],dog:[0.15,0.60]},
-  vine:{w:145,keel:0.12,seat:[0.62,0.62],dog:[0.20,0.55]},
-  rune:{w:145,keel:0.12,seat:[0.60,0.66],dog:[0.18,0.55]},
-  crystal:{w:158,keel:0.12,seat:[0.58,0.70],dog:[0.20,0.55]},
-  steam:{w:189,keel:0.12,seat:[0.56,0.68],dog:[0.18,0.55]},
-  star:{w:189,keel:0.12,seat:[0.58,0.60],dog:[0.18,0.45]},
+  canoe:{w:145,keel:0.12,seat:[0.64,0.44],dog:[0.26,0.55]},
+  dinghy:{w:155,keel:0.12,seat:[0.62,0.47],dog:[0.26,0.58]},
+  motor:{w:165,keel:0.12,seat:[0.60,0.50],dog:[0.30,0.62]},
+  steel:{w:189,keel:0.12,seat:[0.58,0.50],dog:[0.26,0.55]},
+  trawler:{w:203,keel:0.12,seat:[0.56,0.50],dog:[0.24,0.60]},
+  vine:{w:160,keel:0.12,seat:[0.62,0.44],dog:[0.27,0.55]},
+  rune:{w:160,keel:0.12,seat:[0.60,0.47],dog:[0.26,0.55]},
+  crystal:{w:174,keel:0.12,seat:[0.58,0.50],dog:[0.27,0.55]},
+  steam:{w:208,keel:0.12,seat:[0.68,0.48],dog:[0.26,0.55]},
+  star:{w:208,keel:0.12,seat:[0.58,0.42],dog:[0.26,0.45]},
 };
-const BOAT_PERSON = {url:'data:image/png;base64,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', w:24, h:38};
-const BOAT_DOG    = {url:'data:image/png;base64,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', w:40, h:24};
+const BOAT_PERSON = {url:'data:image/png;base64,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', w:24, h:42};
+const BOAT_DOG    = {url:'data:image/png;base64,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', w:40, h:26};
 
 const BOAT_IMG_EL = {};
 Object.keys(BOAT_IMG).forEach(k=>{ const i = new Image(); i.src = BOAT_IMG[k]; BOAT_IMG_EL[k] = i; });
@@ -4159,7 +4159,7 @@ PX.bgBob = 0; PX.bgTilt = 0;
   PX.boatScale = 1.35;      // img 模式船体尺寸
   PX.L.surfY = 352;         // 底图取景映射水线（底图对位用；交互水线走 pxBoatSurf()）
   PX.L.bobX = 190;          // 浮漂落点（船左前方开阔水面）
-  PX.ROD_LEN = 268;         // 竿长
+  PX.ROD_LEN = 216;         // 竿长（缩短：不再超长横跨半个画面）
   /* 底图实体区域（用于覆盖绘制） */
   PX.IMG_DOG = { x: 419, y: 196, w: 54, h: 50 };   // 底图狗：会动的活狗覆盖它
 PX.ROD_SAG = 10;          // 竿自重弯垂
@@ -5022,13 +5022,8 @@ function pxDrawBoat(){
   c.globalAlpha = f;
   c.translate(cx, cy);
   c.rotate(rad);
-  /* 船体：精灵原图朝右（船头在右），水平镜像 → 船头朝左（对齐参考图）。
-     水面线 = anc.surf，船底压入水下 sub 像素 */
-  c.save();
-  c.scale(-1, 1);
-  c.drawImage(img, Math.round(-W/2), Math.round(topY), W, H);
-  c.restore();
-  /* 钓手：坐船尾（镜像后船尾在右端），人面朝左（持竿方向，素材本身朝左） */
+  /* 钓手：坐船尾（镜像后船尾在右端），人面朝左（持竿方向，素材本身朝左）。
+     人先画、船体后画 → 船舷挡住下半身，人是「坐进」船里而非贴在船板上 */
   const P = BOAT_PERSON_EL, ph = BOAT_PERSON.h, pw = Math.round(ph * P.naturalWidth / P.naturalHeight);
   const px0 = Math.round(-W/2 + geo.seat[0]*W - pw/2);
   const py0 = Math.round(topY + geo.seat[1]*H - ph);
@@ -5041,9 +5036,17 @@ function pxDrawBoat(){
   c.scale(-1, 1);
   c.drawImage(D, -dx0 - dw, dy0, dw, dh);
   c.restore();
+  /* 船体最后画：船舷自然遮挡人/狗的下半身（坐进船里的关键）。
+     精灵原图朝右（船头在右），水平镜像 → 船头朝左（对齐参考图）。
+     水面线 = anc.surf，船底压入水下 sub 像素 */
+  c.save();
+  c.scale(-1, 1);
+  c.drawImage(img, Math.round(-W/2), Math.round(topY), W, H);
   c.restore();
-  /* 持竿手世界锚点：人在船尾，手在人身前侧（朝左），随船姿态旋转，供 pxDrawRod 直接使用 */
-  const hx = px0 + pw*0.22, hy = py0 + ph*0.50;
+  c.restore();
+  /* 持竿手世界锚点：人在船尾、手在身前下方（朝左），随船姿态旋转，供 pxDrawRod 直接使用。
+     锚点取前手（身体左缘）→ 竿从手里伸出，不再横穿身体 */
+  const hx = px0 + pw*0.14, hy = py0 + ph*0.58;
   PX._boatHand = {
     x: cx + hx*Math.cos(rad) - hy*Math.sin(rad),
     y: cy + hx*Math.sin(rad) + hy*Math.cos(rad),
