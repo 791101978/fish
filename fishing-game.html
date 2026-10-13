@@ -125,9 +125,9 @@ header{
 /* ---------- 主动画视窗（宽幅横版主视觉，铺满中栏上半部） ----------
    比例 720/320 由 JS 统一按容器可用空间等比计算（pxFitHero），
    避免纯 CSS 下 width/height 单轴夹取导致的比例拉伸。 */
-.animHero{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;padding:2px 0;overflow:hidden}
+.animHero{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:2px 0;overflow:hidden}
 .pixelWin{
-  position:relative;width:100%;aspect-ratio:720/320;
+  position:relative;width:100%;aspect-ratio:1/1;
   border:2px solid var(--line2);border-radius:8px;overflow:hidden;
   background:#0a1a26;image-rendering:pixelated;image-rendering:-moz-crisp-edges;
   box-shadow:inset 0 0 40px rgba(0,0,0,.7), 0 0 0 1px rgba(90,180,230,.12);
@@ -206,11 +206,16 @@ header{
   .basketWarn{font-size:9.5px;top:6px;left:6px}
 }
 /* 日志（中栏下半部：日志聊天面板） */
-.logBox{flex:1;min-height:150px;overflow-y:auto;
+/* 日志面板：标题条 + 滚动区，高度随内容（最多 6 行），不强行撑满 */
+.logPanel{flex:0 0 auto;display:flex;flex-direction:column;
   background:linear-gradient(180deg,rgba(3,9,15,.72),rgba(4,13,20,.62));
-  border:1px solid #1d3a50;border-radius:3px;padding:7px 10px;
-  backdrop-filter:blur(2px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  border:1px solid #1d3a50;border-radius:3px;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.logPanel .logHead{flex:none;padding:5px 10px;font-size:10.5px;font-weight:800;letter-spacing:1.2px;
+  color:#8fb8d4;background:rgba(23,49,72,.55);border-bottom:2px solid #1d3a50;
+  text-shadow:0 0 6px rgba(90,170,220,.2)}
+.logBox{flex:0 0 auto;max-height:172px;overflow-y:auto;
+  padding:7px 10px;
   font-size:12.5px;display:flex;flex-direction:column;gap:3px;justify-content:flex-end}
 .logLine{animation:slideIn .35s ease-out;line-height:1.5;word-break:break-word}
 .logLine .tm{color:#5f8098;font-size:10.5px;margin-right:5px;font-variant-numeric:tabular-nums;opacity:.8}
@@ -768,14 +773,17 @@ header{
           <div class="bannerRow" id="bannerRow"></div>
           <div class="animHero" id="animHero">
             <div class="pixelWin" id="pixelWin">
-              <canvas height="320" id="pixelCv" width="720"></canvas>
+              <canvas height="720" id="pixelCv" width="720"></canvas>
               <button class="animToggle on" id="btnPixelHero" title="动画开关（关闭仅渲染静态场景）">🎞️</button>
               <div class="basketWarn" id="basketWarn">🧺 满仓</div>
               <div class="animHud" id="animHud">自动垂钓中…</div>
               <div class="pixelOff" id="pixelOff">动画已关闭<span>仅渲染静态场景图 · 适合摸鱼</span></div>
             </div>
           </div>
-          <div class="logBox" id="logBox"></div>
+          <div class="logPanel">
+            <div class="logHead">📜 垂钓日志</div>
+            <div class="logBox" id="logBox"></div>
+          </div>
           <div class="actionBar" id="actionBar"></div>
         </div>
       </div>
@@ -3591,7 +3599,7 @@ async function doReset(){
    关闭开关后完全停跑，仅剩文字日志。
    ========================================================================= */
 const PX = {
-  W:720, H:320,
+  W:720, H:720,
   scene:{
     state:'waiting',     // cast|waiting|bite|reel|caught|lost|tide|nest
     t:0,                 // 场景内计时（帧）
@@ -3682,17 +3690,17 @@ const BG_IMG_DATA = {
 PX.bgImgId = 'stream'; PX.bgImg.src = BG_IMG_DATA.stream;
 
 PX.bgBob = 0; PX.bgTilt = 0;
-// 底图坐标锚点（依据底图构图标定）
-  PX.L.rodHandX = 492;      // 钓手持竿点（底图右手位置，PIL 实测）
-  PX.L.rodHandY = 247;
-  PX.L.boatX = 481;         // img 模式船心（船心 + ANGLER_OFF×boatScale ≈ 492,247，与竿手严格对齐）
-  PX.L.boatY = 288;         // 船心压在水面线附近，船体半浸
-  PX.boatScale = 1.35;      // img 模式船体尺寸（比像素模式略小，避免压水面）
-  PX.L.surfY = 294;         // 交互水面线 y（对齐底图画的水面：1.06 缩放后画面水面 ≈296）
+// 底图坐标锚点（正方形画布 720×720：整图入画，按旧 720×320 取景线性换算）
+  PX.L.rodHandX = 492;      // 钓手持竿点（底图右手位置，x 轴映射不变）
+  PX.L.rodHandY = 305;
+  PX.L.boatX = 481;         // img 模式船心
+  PX.L.boatY = 340;         // 船心压在水面线附近，船体半浸
+  PX.boatScale = 1.35;      // img 模式船体尺寸
+  PX.L.surfY = 352;         // 交互水面线 y（正方形取景下底图水面 ≈352）
   PX.L.bobX = 230;          // 浮漂落点（左侧空旷水面）
-  PX.ROD_LEN = 268;         // 竿长（宽幅图像模式，参考图竿占画面约 1/3 宽）
-  /* 底图实体区域（PIL 实测，用于覆盖绘制） */
-  PX.IMG_DOG = { x: 419, y: 225, w: 54, h: 50 };   // 底图狗：会动的活狗覆盖它
+  PX.ROD_LEN = 268;         // 竿长
+  /* 底图实体区域（用于覆盖绘制） */
+  PX.IMG_DOG = { x: 419, y: 196, w: 54, h: 50 };   // 底图狗：会动的活狗覆盖它
 PX.ROD_SAG = 10;          // 竿自重弯垂
 /* ---- 分镜总帧数（供事件排队判断"当前动画还剩多久"） ---- */
 const PX_CAST_FRAMES = 47;    // 抛竿：后摆→甩出→入水安定
@@ -4816,8 +4824,14 @@ const IMG_TINT = {
 };
 /** 底图裁剪视口：每张参考图的构图不同，srcY0 决定 720×320 取景带在源图中的起点 */
 const BG_VIEWPORT = {
-  stream:70, canyon:80, greatriver:90, thousand:110, marsh:90,
-  estuary:90, nearsea:120, farisland:100, glacier:90, meteorlake:40,
+  stream:0, canyon:0, greatriver:0, thousand:0, marsh:0,
+  estuary:0, nearsea:0, farisland:0, glacier:0, meteorlake:0,
+};  // 正方形画布：整张 760×760 底图完整入画，不再纵向裁带
+/* 各场底图「水面线」在源图中的 y（由旧宽幅取景参数反推：vp + 302.2），
+   用于把每场的水面对齐到画布的交互水面线 PX.L.surfY */
+const BG_WATERLINE = {
+  stream:372, canyon:382, greatriver:392, thousand:412, marsh:392,
+  estuary:392, nearsea:422, farisland:402, glacier:392, meteorlake:342,
 };
 
 /** 绘制底图：镜头固定（整图不再随浪起伏/倾斜），只叠渔场色罩。
@@ -4832,16 +4846,18 @@ function pxDrawBgImage(sk){
   const sel = IMG_TINT[sk.id] || IMG_TINT.lake;
 
   c.save();
-  // 放大 1.06 倍以留出位移与倾斜余量，避免出现边缘空隙
-  c.translate(PX.W/2, PX.H/2 + bob);
-  c.rotate(tilt * Math.PI/180);
-  c.scale(1.06, 1.06);
-  /* cover 取景：源图按宽度铺满 720，高度溢出部分按视口参数裁剪，
-     只保留与 720×320 同比例的那一条带（每场构图不同 → BG_VIEWPORT 微调） */
+  /* 正方形画布取景：整张 760×760 底图放大 1.06 倍铺满（留出余量避免边缘空隙），
+     横向居中、纵向按各场水面线对齐交互水面 PX.L.surfY ——
+     这样任何构图的底图，水面都落在同一条线上，交互层永远贴合 */
   const iw = PX.bgImg.naturalWidth || 760, ih = PX.bgImg.naturalHeight || 760;
-  const vp = BG_VIEWPORT[sk.id] != null ? BG_VIEWPORT[sk.id] : 88;
-  const srcH = Math.min(ih, iw * PX.H / PX.W);
-  c.drawImage(PX.bgImg, 0, Math.min(vp, ih - srcH), iw, srcH, -PX.W/2, -PX.H/2, PX.W, PX.H);
+  const f = 1.06;
+  const dw = iw * f, dh = ih * f;
+  const dx = (PX.W - dw) / 2;
+  const wl = BG_WATERLINE[sk.id] != null ? BG_WATERLINE[sk.id] : 372;
+  let dy = PX.L.surfY - wl * f;
+  dy = Math.min(dy, 0);                 // 顶边不得悬空
+  dy = Math.max(dy, PX.H - dh);         // 底边不得悬空（宁可裁掉上方天空）
+  c.drawImage(PX.bgImg, dx, dy, dw, dh);
   c.restore();
 
   // 渔场气色罩：先整体色调，再由深到浅压暗水下
@@ -4852,8 +4868,8 @@ function pxDrawBgImage(sk){
   const sy = PX.L.surfY;
   const wg = c.createLinearGradient(0, sy - 52, 0, sy + 68);
   wg.addColorStop(0, 'rgba(0,0,0,0)');
-  wg.addColorStop(0.45, pxA(sk.waterTop, 0.55));
-  wg.addColorStop(1, pxA(sk.waterMid, 0.97));
+  wg.addColorStop(0.45, pxA(sk.waterTop, 0.40));
+  wg.addColorStop(1, pxA(sk.waterMid, 0.86));
   c.fillStyle = wg; c.fillRect(0, sy - 52, PX.W, PX.H - sy + 52);
   // 深水压暗（保留原色罩的暗部）
   const grad = c.createLinearGradient(0, sy + 10, 0, PX.H);
@@ -5627,6 +5643,7 @@ function pxDrawSceneImg(){
     // 线：竿梢 → 钩眼，垂度随竿身起伏变化（线在水面轻轻拖拽）
     pxDrawImgLine(rod.ex, rod.ey, wEye.x, wEye.y, 3 + Math.sin(PX.frame*0.07)*3, 1);
     // 浮漂下方水里的鱼影巡游（朝向跟随游动方向；不同鱼种各有体形与大小）
+    // 鱼影巡游（正方形画布水面更深，鱼群散在水面下方不同深度，朝向跟随游动方向）
     const swim = ['白条','鲫鱼','鲤鱼'];
     for(let i=0;i<3;i++){
       const per = 300 + i*90;
@@ -5634,10 +5651,10 @@ function pxDrawSceneImg(){
       const prog = kk < per/2 ? kk/(per/2) : 1-(kk-per/2)/(per/2);
       // 鱼影只在左侧空旷水域巡游（船体区 x>=360 不进，避免穿过人物）
       const fx = 70 + prog*250;
-      const fy = Math.min(304, sy - 16 + i*9 + Math.sin(PX.frame*0.04 + i)*3);
+      const fy = Math.min(sy + 120, sy + 34 + i*34 + Math.sin(PX.frame*0.04 + i)*3);
       const look = pxFishLook(swim[i], i === 2 ? 'good' : 'common');
       const spec = fishDrawSpec(i === 2 ? 'mid' : 'small', look);
-      pxDrawImgFish(fx, fy, '#5b7d92', kk < per/2 ? 180 : 0, 0, {alpha:0.30, look, len:spec.len});
+      pxDrawImgFish(fx, fy, '#5b7d92', kk < per/2 ? 180 : 0, 0, {alpha:0.42, look, len:spec.len});
     }
     pxDrawImgHook(hx, hy, hAng);                          // 钩（画在鱼影之后、浮漂之前：钩柄没入浮漂，只露钩弯）
     pxDrawImgBobber(bobX + drift, bY + dy);               // 浮漂（含轻抖偏移 dy）
@@ -5679,7 +5696,7 @@ function pxDrawSceneImg(){
     const fishA = 80 + Math.sin(T*0.85)*9;                   // 头（嘴）朝上左右甩头（锁 <90° 免镜像翻转）
     const ma = fishA * Math.PI / 180;
     const fx = hx + Math.cos(ma)*biteSpec.nose*0.95;         // 嘴→尾：中心 = 钩 + nose 方向
-    const fy = Math.min(302, hy + Math.sin(ma)*biteSpec.nose*0.95);
+    const fy = Math.min(sy + 40, hy + Math.sin(ma)*biteSpec.nose*0.95);
     // 主线：竿梢 → 钩眼（咬钩时绷紧，几乎无垂度）
     const bEye = pxImgHookEye(hx, hy, fishA);
     pxDrawImgLine(rod.ex, rod.ey, bEye.x, bEye.y, small?6:1, small?1:2);
@@ -5688,7 +5705,7 @@ function pxDrawSceneImg(){
     s.lastFish = { x: fx, y: fy, a: fishA };   // 记末帧锚点：起鱼分镜从这里平滑接力
     // 巨物：水下更大剪影 + 泄力器光点
     if(!small && !mid){
-      pxDrawImgFish(hx - 16, Math.min(304, fy + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
+      pxDrawImgFish(hx - 16, Math.min(sy + 60, fy + biteSpec.len*0.35), col, fishA + 8, 0, {alpha:0.42, look: biteLook, len: biteSpec.len*0.84});
       for(let i=0;i<6;i++){
         const ph = (PX.frame + i*3) % 14;
         if(ph < 7) pxPix(PX.L.rodHandX - 8 - i*5, PX.L.rodHandY + 2 + (i%2), '#ffd27a');
@@ -5786,13 +5803,13 @@ function pxDrawSceneImg(){
       if(T < snapT){
         const jit = Math.sin(T*1.1)*15;
         pxDrawImgLine(rod.ex, rod.ey, bx + jit, sy + 22, 4, 2);
-        pxDrawImgFish(bx - 34, Math.min(304, sy + 16 + T*0.8), col, -78, 0, {alpha:0.8, look, len:spec.len});
+        pxDrawImgFish(bx - 34, Math.min(sy + 80, sy + 16 + T*0.8), col, -78, 0, {alpha:0.8, look, len:spec.len});
       } else {
         // 竿端垂下的断线
         pxDrawImgLine(rod.ex, rod.ey, rod.ex + 40, rod.ey + 46, 12, 1);
         // 逃逸的鱼（向右下潜，头朝下游动方向）
         const k2 = Math.min(1, (T-snapT)/30);
-        pxDrawImgFish(bx + k2*130, Math.min(304, sy + 26 + k2*30), col, 258 + k2*8, 0, {alpha:0.85, look, len:spec.len});
+        pxDrawImgFish(bx + k2*130, Math.min(sy + 90, sy + 26 + k2*30), col, 258 + k2*8, 0, {alpha:0.85, look, len:spec.len});
         if(pxOnce('snap', T, snapT)){ pxEmitSplash(bx, sy+2, 10); pxShake(); }
       }
     } else {
@@ -5827,7 +5844,7 @@ function pxDrawSceneImg(){
         pxRect(Math.round(hx)+3, Math.round(hy)+4, 2, 5, '#dbe6ee');
         pxPix(Math.round(hx), Math.round(hy)-1, '#ffffff');
         // 鱼顺势下潜逃逸（接在跃出终点之后，不再瞬移）
-        if(backT < 40) pxDrawImgFish(bobX + 108 + backT*1.6, Math.min(306, sy + 12 + backT*2.0), col, 264 - backT*0.5, 0, {alpha:0.8, look, len:spec.len});
+        if(backT < 40) pxDrawImgFish(bobX + 108 + backT*1.6, Math.min(sy + 80, sy + 12 + backT*2.0), col, 264 - backT*0.5, 0, {alpha:0.8, look, len:spec.len});
       }
       // 浮漂弹回原位的余波
       const bb = Math.max(0, 1 - T/26);
@@ -5952,7 +5969,7 @@ function pxDrawSceneImg(){
     // 鱼潮：鱼群只在浮漂左侧水面巡游（避开船体区 x>=360）；朝向=游动方向（往右游）
     for(let i=0;i<14;i++){
       const fx = ((PX.frame*4.2 + i*57) % 380) - 40;
-      const fy = Math.min(310, sy + 8 + (i%4)*5 + Math.sin((PX.frame+i*8)*0.3)*3);
+      const fy = Math.min(sy + 70, sy + 8 + (i%4)*5 + Math.sin((PX.frame+i*8)*0.3)*3);
       const r = (i%2) ? 'rare' : 'good';
       const look = pxFishLook(FISH_BODY[r][i % FISH_BODY[r].length], r);
       const spec = fishDrawSpec((i%5 === 0) ? 'mid' : 'small', look);
@@ -5977,7 +5994,7 @@ function pxDrawSceneImg(){
       const r = (i%2) ? 'legend' : 'good';
       const look = pxFishLook(FISH_BODY[r][i % FISH_BODY[r].length], r);
       const spec = fishDrawSpec('mid', look);
-      pxDrawImgFish(nx, Math.min(308, sy + 12 + Math.sin(ang)*rr*0.24), PAL.rare[r],
+      pxDrawImgFish(nx, Math.min(sy + 70, sy + 12 + Math.sin(ang)*rr*0.24), PAL.rare[r],
                     Math.sin(ang) > 0 ? 0 : 180, 0, {alpha:0.85, look, len:spec.len});
     }
     const nY = sy - 6 + Math.sin(PX.frame*0.3);
