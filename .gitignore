@@ -1,5 +1,6 @@
-# 运行时数据（用户账号 / 会话 / 存档）存在部署环境里，不进仓库
-data/
+# 运行时数据（用户账号 / 会话 / 存档）由 server.js 放在项目父目录
+# 的 moyu-fishing-runtime/，不进仓库、不参与发布上传
+moyu-fishing-runtime/
 
 # 依赖与系统垃圾
 node_modules/

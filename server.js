@@ -15,7 +15,32 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, 'data');
+
+/* ---------------------------------------------------------------------------
+ * 运行时数据目录：必须放在「项目目录之外」。
+ *
+ * 原因：发布平台每次 deploy 会把整个项目目录压缩上传并覆盖线上沙箱，
+ * data/ 放在项目里就会被本地数据顶掉，线上注册的账号每次都丢。
+ * 放到项目父目录后，该目录是运行时在沙箱里新建的，不参与上传，
+ * 重新发布时得以保留。
+ * 父目录不可写时退到系统临时目录。
+ * ------------------------------------------------------------------------- */
+const RUNTIME_DIR_NAME = 'moyu-fishing-runtime';
+function pickDataDir() {
+  const candidates = [
+    path.join(ROOT, '..', RUNTIME_DIR_NAME),
+    path.join(require('os').tmpdir(), RUNTIME_DIR_NAME),
+  ];
+  for (const d of candidates) {
+    try {
+      fs.mkdirSync(d, { recursive: true });
+      fs.accessSync(d, fs.constants.W_OK);
+      return d;
+    } catch (e) { /* 试下一个 */ }
+  }
+  return candidates[candidates.length - 1];
+}
+const DATA_DIR = pickDataDir();
 const SAVE_DIR = path.join(DATA_DIR, 'saves');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SESS_FILE = path.join(DATA_DIR, 'sessions.json');
@@ -31,6 +56,20 @@ const SCRYPT_KEYLEN = 64;
 function ensureDirs() {
   for (const d of [DATA_DIR, SAVE_DIR]) {
     try { fs.mkdirSync(d, { recursive: true }); } catch (e) {}
+  }
+  migrateLegacyData();
+}
+
+/** 一次性迁移：老版本把数据放在项目内的 data/，会被发布覆盖，搬来新位置 */
+function migrateLegacyData() {
+  const legacy = path.join(ROOT, 'data');
+  try {
+    if (!fs.existsSync(path.join(legacy, 'users.json'))) return;
+    if (fs.existsSync(USERS_FILE)) return;          // 新位置已有数据，不覆盖
+    fs.cpSync(legacy, DATA_DIR, { recursive: true });
+    console.log('[migrate] 旧 data/ 已迁移到', DATA_DIR);
+  } catch (e) {
+    console.log('[migrate] 跳过：', e.message);
   }
 }
 ensureDirs();
@@ -402,7 +441,7 @@ async function handleApi(req, res, urlPath) {
 
   /* ---- 健康检查 ---- */
   if (urlPath === '/api/health') {
-    return json(res, 200, { ok: true, users: Object.keys(users).length, uptime: Math.floor(process.uptime()) });
+    return json(res, 200, { ok: true, users: Object.keys(users).length, uptime: Math.floor(process.uptime()), dataDir: DATA_DIR });
   }
 
   return json(res, 404, { error: 'NOT_FOUND' });
