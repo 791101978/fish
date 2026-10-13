@@ -83,9 +83,10 @@ header{
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .28s}
   .scrim.on{opacity:1;pointer-events:auto}
   header{padding:6px 8px}
-  .res{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-  .res::-webkit-scrollbar{display:none}
-  .resItem{flex-shrink:0}
+  .tb-mid{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .tb-mid::-webkit-scrollbar{display:none}
+  .resChip,.basketChip{flex-shrink:0}
+  .lvChip{min-width:120px}
   #toasts{top:auto!important;bottom:96px}
 }
 @media(min-width:1081px){.scrim{display:none}.only-mobile{display:none!important}}
@@ -722,6 +723,105 @@ header{
 .pickBoat{flex:1;max-width:230px;border:1px solid rgba(120,170,210,.25);border-radius:10px;padding:10px;text-align:center;cursor:pointer;background:rgba(10,26,42,.4)}
 .pickBoat:hover{border-color:#4aa8ff;background:rgba(30,60,90,.5)}
 .pickBoat img{max-width:150px;max-height:66px;image-rendering:pixelated}
+/* ---------- 顶栏 v2：左(等级/金币/精华) 中(鱼篓点阵/资源) 右(快捷面板) ---------- */
+header{gap:8px}
+.tb-left{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0}
+.lvChip{
+  min-width:158px;background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:3px 10px 5px;
+}
+.lvChip .lvTop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11.5px;line-height:1.2}
+.lvChip .lvTop b{color:#e2f2fb;font-size:12px;letter-spacing:.3px}
+.lvChip .lvTop span{color:var(--txt3);font-variant-numeric:tabular-nums;font-size:10.5px}
+.xpBar{height:4px;background:#081420;border-radius:4px;overflow:hidden;margin-top:3px;border:1px solid rgba(255,255,255,.05)}
+.xpBar i{display:block;height:100%;background:linear-gradient(90deg,#1f7fd4,#4fd08a);border-radius:4px;transition:width .4s}
+.resChip{
+  display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
+  padding:4px 9px;border-radius:20px;font-size:12.5px;white-space:nowrap
+}
+.resChip b{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700}
+.resChip .ico{font-size:13px}
+.tb-mid{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.tb-mid::-webkit-scrollbar{display:none}
+.basketChip{
+  display:flex;align-items:center;gap:7px;white-space:nowrap;
+  background:rgba(23,49,72,.55);border:1px solid #2b4a63;
+  padding:4px 11px;border-radius:20px;font-size:12.5px;flex-shrink:0
+}
+.basketChip .bi{font-size:14px;line-height:1}
+.basketChip b{color:#e2f2fb;font-variant-numeric:tabular-nums}
+.basketChip.full{border-color:#ff5f6d;animation:warnblink .85s steps(1,end) infinite}
+.dotMeter{display:inline-flex;gap:2.5px;margin-left:2px}
+.dotMeter i{width:4.5px;height:9px;background:#12293c;border-radius:1px}
+.dotMeter i.on{background:#4aa8ff;box-shadow:0 0 4px rgba(74,168,255,.55)}
+.dotMeter i.full{background:#ff5f6d;box-shadow:0 0 4px rgba(255,95,109,.6)}
+.tb-right{display:flex;align-items:center;gap:5px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.tb-btn{background:rgba(23,49,72,.42)}
+.kbd{
+  font-size:9px;font-weight:800;line-height:1;padding:1px 4px;margin-left:2px;
+  border:1px solid #2b4a63;border-bottom-width:2px;border-radius:3px;color:#7fa3bd;background:rgba(6,16,26,.5)
+}
+
+/* ---------- 装备 3×2 大格子（角色与装备） ---------- */
+.eqGrid2{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.eqCell{
+  position:relative;cursor:pointer;overflow:hidden;text-align:center;
+  padding:9px 5px 7px;border-radius:4px;
+  background:linear-gradient(170deg,#17334c,#0d1f2f);
+  border:2px solid var(--line);
+  transition:transform .12s,filter .12s,box-shadow .12s;
+}
+.eqCell:hover{transform:translateY(-2px);filter:brightness(1.18);z-index:4}
+.eqCell .cellIco{font-size:23px;line-height:1.15}
+.eqCell .cellName{font-size:10.5px;font-weight:800;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eqCell .cellDur{height:5px;background:#081420;border:1px solid #1c3a50;border-radius:3px;overflow:hidden;margin-top:5px}
+.eqCell .cellDur i{display:block;height:100%;transition:width .3s,background .3s}
+.eqCell .cellDur.ok i{background:linear-gradient(90deg,#2f9e63,#4fd08a)}
+.eqCell .cellDur.mid i{background:linear-gradient(90deg,#c9922e,#ffc94a)}
+.eqCell .cellDur.low i{background:linear-gradient(90deg,#a12b36,#ff5f6d);animation:durBlink .8s steps(2) infinite}
+.eqCell .cellDur.zero i{background:#39444e}
+.eqCell .cellDurTxt{font-size:9.5px;margin-top:2px;font-variant-numeric:tabular-nums;color:#8fa8b8}
+.eqCell .cellDurTxt.ok{color:#6fd6a0}.eqCell .cellDurTxt.mid{color:#ffcb52}
+.eqCell .cellDurTxt.low{color:#ff9aa2;font-weight:700}.eqCell .cellDurTxt.zero{color:#5d6a75}
+.eqCell.empty{opacity:.55;border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:92px}
+.eqCell.empty .e1{font-size:20px;line-height:1}
+.eqCell.empty .e2{font-size:11px;font-weight:700;color:var(--txt2)}
+.eqCell.empty .e3{font-size:9.5px;color:#7fa3bd}
+.eqCell .ec-warn{position:absolute;top:4px;right:5px;font-size:11px;line-height:1;color:#ff5f6d;
+  text-shadow:0 0 6px rgba(255,95,109,.8);animation:durBlink .9s steps(2) infinite}
+
+/* ---------- 右栏：今日捕获榜 / 钓友 / 图鉴 ---------- */
+.capRow{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.capCard{
+  text-align:center;padding:9px 4px 7px;border-radius:8px;
+  background:linear-gradient(170deg,#17334c,#0d1f2f);border:1px solid var(--line);
+}
+.capCard .capMedal{font-size:17px;line-height:1.2}
+.capCard .capName{font-size:10.5px;font-weight:700;color:#cfe6f5;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.capCard .capVal{font-size:11px;color:var(--gold);font-variant-numeric:tabular-nums;font-weight:800;margin-top:2px}
+.capCard.me{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,195,64,.25)}
+.capCard.empty{opacity:.42}
+.friendRow{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel);margin-bottom:6px
+}
+.friendRow .fAva{width:30px;height:30px;border-radius:8px;background:#12293c;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.friendRow .fInfo{flex:1;min-width:0}
+.friendRow .fN{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.friendRow .fS{font-size:10px;margin-top:1px}
+.friendRow .fS.on{color:#4fd08a}.friendRow .fS.off{color:#6d8296}
+.dexRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dexPct{font-size:12px;color:var(--txt2)}
+.dexPct b{color:var(--gold);font-size:14px;font-variant-numeric:tabular-nums}
+.dexIcos{display:flex;gap:5px;flex:1;min-width:0}
+.dexIcos span{
+  width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:15px;background:#0d1f2f;border:1px solid var(--line)
+}
+
+/* ---------- 底部动作条：窝料快捷槽 ---------- */
+.btn.bait{background:rgba(23,49,72,.55);border-color:#3b7799;color:#cfe6f5}
+.btn.bait:hover{border-color:var(--gold);color:#ffe9b0}
 </style>
 </head>
 <body>
@@ -769,13 +869,20 @@ header{
 <div id="app">
   <header>
     <div class="logo"><span class="dot"></span>放松垂钓</div>
-    <div class="res" id="resBar"></div>
-    <button class="btn sm only-mobile" id="btnMenuL">☰ 面板</button>
-    <button class="btn sm only-mobile" id="btnMenuR">社交</button>
-    <button class="btn sm" id="btnNest" title="打窝">🪣 打窝</button>
-    <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
-    <button class="btn sm" id="btnAccount" title="账号">👤</button>
-    <button class="btn sm" id="btnMute" title="播报开关">🔊</button>
+    <div class="tb-left" id="tbLeft"></div>
+    <div class="tb-mid" id="tbMid"></div>
+    <div class="tb-right">
+      <button class="btn sm tb-btn" onclick="switchTab('inv')" title="背包">🎒 背包<b class="kbd">B</b></button>
+      <button class="btn sm tb-btn" onclick="switchTab('shop')" title="商店">🏪 商店<b class="kbd">S</b></button>
+      <button class="btn sm tb-btn" onclick="switchTab('wish')" title="祈愿">🙏 祈愿<b class="kbd">P</b></button>
+      <button class="btn sm tb-btn" onclick="switchTab('rank')" title="榜单">🏆 榜单<b class="kbd">R</b></button>
+      <button class="btn sm" id="btnNest" title="打窝(N)">🪣 打窝</button>
+      <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
+      <button class="btn sm" id="btnAccount" title="账号">👤</button>
+      <button class="btn sm" id="btnMute" title="播报开关">🔊</button>
+      <button class="btn sm only-mobile" id="btnMenuL">☰ 面板</button>
+      <button class="btn sm only-mobile" id="btnMenuR">☰</button>
+    </div>
   </header>
 
   <div class="main">
@@ -2762,28 +2869,29 @@ function dailySettleAssign(){
 
 /* ---------------- 渲染 ---------------- */
 let tabL='equip', tabR='pond';
+function _resChip(ico,k,v){ return '<div class="resChip"><span class="ico">'+ico+'</span>'+k+' <b>'+v+'</b></div>'; }
 function renderResBar(){
-  const el = document.getElementById('resBar');
+  const left = document.getElementById('tbLeft');
+  const mid = document.getElementById('tbMid');
+  if(!left || !mid) return;
   const bc = basketCount(), bl = basketLimit();
   const nst = nestState();
-  const sat = (ENV.satietyUntil>Date.now()) ? ENV.satiety : 0;
-  const tide = ENV.tideUntil>Date.now();
-  const items = [
-    ['💰','金币', fmt(S.gold)],
-    ['💎','精华', fmt(S.ess)],
-    ['🐟','鱼获', fmt(S.res.catch||0)],
-    ['🐠','鱼鳞', fmt(S.res.scale||0)],
-    ['🫧','窝料精华', fmt(S.res.essence||0)],
-    ['🔧','维修', fmt(S.res.repair||0)],
-    ['🪵','船骸', fmt(S.res.wreck||0)],
-    ['💠','核心', fmt(S.res.core||0)],
-    ['🧺','鱼篓', bc+'/'+bl],
-    ['⭐','Lv', S.lv + ' ('+Math.floor(S.exp)+'/'+levelNeed(S.lv)+')'],
-    ['🪣','窝点', nst.active? (Math.ceil(nst.remain/1000)+'s'):'无'],
-  ];
-  if(sat>0) items.push(['🔥','饱和','+'+Math.round(sat*100)+'%']);
-  if(tide) items.push(['🌊','鱼潮', Math.ceil((ENV.tideUntil-Date.now())/1000)+'s']);
-  el.innerHTML = items.map(([i,k,v])=>'<div class="resItem"><span class="ico">'+i+'</span>'+k+' <b>'+v+'</b></div>').join('');
+  /* 左区：等级经验条 + 金币 + 精华 */
+  const need = levelNeed(S.lv);
+  const pct = Math.max(0, Math.min(100, S.exp/need*100));
+  left.innerHTML =
+    '<div class="lvChip"><div class="lvTop"><b>Lv '+S.lv+'</b><span>'+Math.floor(S.exp)+' / '+fmt(need)+'</span></div>'+
+    '<div class="xpBar"><i style="width:'+pct.toFixed(1)+'%"></i></div></div>'+
+    _resChip('💰','金币',fmt(S.gold)) + _resChip('💠','精华',fmt(S.ess));
+  /* 中区：鱼篓点阵容量 + 其余资源芯片 */
+  const dots = 14, filled = Math.round(Math.max(0,Math.min(1,bc/bl))*dots);
+  let dm = ''; for(let i=0;i<dots;i++) dm += '<i class="'+(i<filled ? (bc>=bl?'full':'on') : '')+'"></i>';
+  mid.innerHTML =
+    '<div class="basketChip'+(bc>=bl?' full':'')+'"><span class="bi">🧺</span>鱼篓 <b>'+bc+'/'+bl+'</b>'+
+    '<span class="dotMeter">'+dm+'</span></div>'+
+    _resChip('🐟','鱼获',fmt(S.res.catch||0)) + _resChip('🐠','鱼鳞',fmt(S.res.scale||0)) +
+    _resChip('🫧','窝料',fmt(S.res.essence||0)) + _resChip('🔧','维修',fmt(S.res.repair||0)) +
+    _resChip('🪵','船骸',fmt(S.res.wreck||0)) + _resChip('💠','核心',fmt(S.res.core||0));
   document.getElementById('btnNest').textContent = '🪣 打窝' + (nst.active? ' · '+Math.ceil(nst.remain/1000)+'s' : '');
 }
 function renderBanners(){
@@ -2818,21 +2926,32 @@ function renderBanners(){
 function renderActionBar(){
   const el = document.getElementById('actionBar');
   const bc = basketCount(), bl = basketLimit();
-  const paused = !S.auto;
+  const nst = nestState();
+  /* 窝料快捷槽：打窝中显示当前窝料与剩余时长，否则显示库存最多的免费窝料 */
+  let baitChip;
+  if(nst.active){
+    baitChip = '<button class="btn bait" onclick="openNest()" title="管理窝点">'+nst.bait.ico+' '+esc(nst.bait.name)+' · '+nst.phase+' ×'+nst.mul.toFixed(2)+' · 剩 '+fmtTime(nst.remain)+'</button>';
+  }else{
+    const own = BAITS.map(b=>({b, n:S.freeBaits && S.freeBaits[b.id] || 0})).filter(x=>x.n>0);
+    baitChip = own.length
+      ? '<button class="btn bait" onclick="openNest()" title="选择窝料打窝">🌽 窝料快捷槽: '+own[own.length-1].b.ico+' '+esc(own[own.length-1].b.name)+' ×'+fmt(own[own.length-1].n)+'</button>'
+      : '<button class="btn bait" onclick="openNest()" title="去商店 / 打窝">🌽 窝料快捷槽 · 空</button>';
+  }
   el.innerHTML = `
     <button class="btn ${S.auto?'on':'primary'}" onclick="toggleAuto()">${S.auto?'⏸️ 暂停挂机':'▶️ 开始挂机'}</button>
     <button class="btn gold" onclick="sellAll()">💰 一键售卖 (${bc})</button>
     <button class="btn pink" onclick="openNest()">🪣 打窝</button>
+    ${baitChip}
     <button class="btn" onclick="openSpot()">🗺️ 换渔场</button>
-    <button class="btn ${paused?'primary':''}" onclick="switchTab('pond')">📊 状态</button>
+    <button class="btn" onclick="switchTab('pond')">📊 状态</button>
   `;
 }
 function renderTabHeads(){
   const tl = document.getElementById('tabsL');
-  const L = [['equip','⚙️ 装备'],['inv','🎒 背包'],['wish','🌊 祈愿'],['dock','🛶 船坞'],['bag','🧺 鱼篓'],['shop','🏪 商店'],['bait','🪣 窝料']];
+  const L = [['equip','⚙️ 装备'],['inv','🎒 背包'],['wish','🌊 祈愿'],['bag','🧺 鱼篓'],['shop','🏪 商店'],['bait','🪣 窝料']];
   tl.innerHTML = L.map(([k,n])=>'<div class="tab '+(tabL===k?'on':'')+'" onclick="switchTab(\''+k+'\')">'+n+'</div>').join('');
   const tr = document.getElementById('tabsR');
-  const R = [['pond','🌊 渔场'],['rank','🏆 榜单'],['social','🤝 钓友'],['info','📖 图鉴']];
+  const R = [['pond','🌊 渔场'],['rank','🏆 榜单'],['dock','🛶 船坞'],['info','📖 图鉴']];
   tr.innerHTML = R.map(([k,n])=>'<div class="tab '+(tabR===k?'on':'')+'" onclick="switchTab(\''+k+'\')">'+n+'</div>').join('');
 }
 function renderPaneL(){
@@ -2840,7 +2959,6 @@ function renderPaneL(){
   if(tabL==='equip') el.innerHTML = viewEquip();
   else if(tabL==='inv') el.innerHTML = viewInv();
   else if(tabL==='wish') el.innerHTML = viewWish();
-  else if(tabL==='dock') el.innerHTML = viewDock();
   else if(tabL==='bag') el.innerHTML = viewBag();
   else if(tabL==='shop') el.innerHTML = viewShop();
   else el.innerHTML = viewBait();
@@ -2849,11 +2967,11 @@ function renderPaneR(){
   const el = document.getElementById('paneR');
   if(tabR==='pond') el.innerHTML = viewPond();
   else if(tabR==='rank') el.innerHTML = viewRank();
-  else if(tabR==='social') el.innerHTML = viewSocial();
+  else if(tabR==='dock') el.innerHTML = viewDock();
   else el.innerHTML = viewInfo();
 }
 function switchTab(k){
-  if(['equip','inv','wish','dock','bag','shop','bait'].includes(k)) tabL=k; else tabR=k;
+  if(['equip','inv','wish','bag','shop','bait'].includes(k)) tabL=k; else tabR=k;
   renderTabHeads(); renderPaneL(); renderPaneR();
   closeDrawers();
 }
@@ -2926,8 +3044,41 @@ function eqCardWords(wv, max){
 }
 function viewEquip(){
   const st = eqStats();
+  const bn = brokenCount();
+
+  /* ---- 模块 1：装备槽 3×2 大格子 ---- */
   let h = '<div class="sec pxNoise">'+
-    '<div class="pxHead"><span class="ico">🎣</span><span class="t">综合垂钓属性</span>'+
+    '<div class="pxHead"><span class="ico">🧰</span><span class="t">角色与装备</span>'+
+    '<span class="sub">悬停预览 · 点击详情</span></div><div class="eqGrid2">';
+  SLOTS.forEach(sl=>{
+    const it = S.equip[sl.id];
+    if(!it){
+      h += '<div class="eqCell empty" onclick="switchTab(\'inv\')">'+
+        '<div class="e1">'+sl.ico+'</div><div class="e2">'+sl.name+'</div>'+
+        '<div class="e3">空 · 去背包换装</div></div>';
+      return;
+    }
+    const rc = EQ_RARITY[it.rarity];
+    const ds = durState(it);
+    const mx = itemDurMax(it);
+    h += '<div class="eqCell r-'+rc.cls+(it.dur<=0?' broken':'')+'" '+
+      'onmouseenter="showEqTip(event,\''+it.uid+'\')" onmousemove="moveEqTip(event)" onmouseleave="hideEqTip()" '+
+      'onclick="openEquip(\''+sl.id+'\')">'+
+      (ds==='low'?'<span class="ec-warn" title="耐久偏低">⚠</span>':'')+
+      (ds==='zero'?'<span class="ec-warn" title="词条已失效" style="animation:none">💥</span>':'')+
+      '<div class="cellIco">'+sl.ico+'</div>'+
+      '<div class="cellName t-'+rc.cls+'">'+eqFullName(it)+'</div>'+
+      '<div class="cellDur '+ds+'"><i style="width:'+Math.max(0,Math.min(100,it.dur/mx*100))+'%"></i></div>'+
+      '<div class="cellDurTxt '+ds+'">'+it.dur+'/'+mx+'</div>'+
+      '</div>';
+  });
+  h += '</div></div>';
+
+  if(bn) h += '<div class="sec"><div class="secWarn">💥 有 '+bn+' 件装备耐久归零，词条已失效（仅保留基础白字属性）。到「🎒 背包」消耗维修材料修复。</div></div>';
+
+  /* ---- 模块 2：综合钓具属性（点线列表） ---- */
+  h += '<div class="sec pxNoise">'+
+    '<div class="pxHead"><span class="ico">⚡</span><span class="t">综合钓具属性</span>'+
     '<span class="sub">装备词条 + 上阵船只加成</span></div>';
   STAT_GROUPS.forEach(g=>{
     h += '<div class="statGroup"><div class="sg-t">'+g.ico+' '+g.t+'</div>';
@@ -2945,39 +3096,7 @@ function viewEquip(){
   STAT_GROUPS.forEach(g=>g.keys.forEach(k=>{ _lastPanelStats[k] = statNum(k, st); }));
   h += '<div class="hint" style="margin-top:2px">属性由穿戴装备词条叠加，卸下装备实时变化</div></div>';
 
-  const bn = brokenCount();
-  if(bn) h += '<div class="sec"><div class="secWarn">💥 有 '+bn+' 件装备耐久归零，词条已失效（仅保留基础白字属性）。到「🎒 背包」消耗维修材料修复。</div></div>';
-
-  h += '<div class="sec pxNoise">'+
-    '<div class="pxHead"><span class="ico">🧰</span><span class="t">装备槽位</span>'+
-    '<span class="sub">悬停预览 · 点击详情</span></div><div class="eqGrid">';
-  SLOTS.forEach(sl=>{
-    const it = S.equip[sl.id];
-    if(!it){
-      h += '<div class="eqCard empty" onclick="switchTab(\'inv\')">'+
-        '<div class="e1">'+sl.ico+'</div><div class="e2">'+sl.name+'</div>'+
-        '<div class="e3">空 · 点击去背包换装</div></div>';
-      return;
-    }
-    const rc = EQ_RARITY[it.rarity];
-    const ds = durState(it);
-    h += '<div class="eqCard r-'+rc.cls+(it.dur<=0?' broken':'')+'" '+
-      'onmouseenter="showEqTip(event,\''+it.uid+'\')" onmousemove="moveEqTip(event)" onmouseleave="hideEqTip()" '+
-      'onclick="openEquip(\''+sl.id+'\')">'+
-      '<span class="ec-tag t-'+rc.cls+'">'+rc.name+'</span>'+
-      (ds==='low'?'<span class="ec-warn" title="耐久偏低">⚠</span>':'')+
-      (ds==='zero'?'<span class="ec-warn" title="词条已失效" style="animation:none">💥</span>':'')+
-      '<div class="ec-h"><span class="ec-ico">'+sl.ico+'</span><div style="min-width:0;flex:1">'+
-      '<div class="ec-n t-'+rc.cls+'">'+eqFullName(it)+'</div>'+
-      '<div class="ec-slot">'+sl.name+' · '+sl.act+'</div></div></div>'+
-      '<div class="ec-w">'+eqCardWords(wordView(it))+'</div>'+
-      '<div class="ec-f">'+durBarHtml(it)+'</div>'+
-      '<span class="ec-detail" title="装备详情" onclick="event.stopPropagation();openEquip(\''+sl.id+'\')">🔍</span>'+
-      '</div>';
-  });
-  h += '</div></div>';
-
-  // 巨物拉扯保护
+  /* ---- 模块 3：巨物拉扯保护 ---- */
   const th = (S.cutGuard == null ? 0.20 : S.cutGuard);
   h += '<div class="sec pxNoise"><div class="cutGuard">'+
     '<div class="cg-t"><span class="cg-ico">⚠️</span>巨物拉扯保护设置</div>'+
@@ -2991,7 +3110,7 @@ function viewEquip(){
     '<div class="hint">装备耐久归零 → 词条全部失效，仅保留基础白字</div>'+
     '</div></div>';
 
-  // 规则折叠
+  /* ---- 模块 4：规则折叠 ---- */
   h += '<div class="sec"><div class="pxFold" id="ruleFold" onclick="toggleRuleFold()">'+
     '<div class="pf-h">📜 规则提示（点击展开）<span class="ar">▶</span></div>'+
     '<div class="pf-b">'+
@@ -3338,7 +3457,7 @@ function startBoatWish(pid){
       '<div class="tiny" style="margin-top:6px">返还一半消耗材料：'+costText(back)+'（保底计数已累计，不会白抽）。</div></div>',
       '<button class="btn primary" onclick="closeModal()">知道了</button>');
     pushLog('🌊 <b class="t-epic">暗流偏移</b>：航召一无所获，返还 '+costText(back), 'log-bad');
-    save(); renderResBar(); if(tabL==='dock') renderPaneL();
+    save(); renderResBar(); if(tabR==='dock') renderPaneR();
     return;
   }
   const id = boatRollTarget(pid);
@@ -3370,7 +3489,7 @@ function chooseBoat(bid){
     '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();switchTab(\'dock\')">🛶 查看船坞</button>');
   pushLog(dup ? '🛶 航船抽到重复的 <b class="t-'+EQ_RARITY[b.rarity].cls+'">'+b.name+'</b>，另一艘沉入深海'
               : '🛶 航船祈愿收入 <b class="t-'+EQ_RARITY[b.rarity].cls+'">'+b.name+'</b>！已存入船坞', 'log-big');
-  BW = null; save(); renderResBar(); if(tabL==='dock') renderPaneL();
+  BW = null; save(); renderResBar(); if(tabR==='dock') renderPaneR();
 }
 /* ---- 上阵切换（综合属性面板实时增减） ---- */
 function setActiveBoat(id){
@@ -3528,7 +3647,8 @@ function viewPond(){
   /* ---- 模块 1：当前渔场 ---- */
   let h = '<div class="sec"><div class="sec-title">渔场概况</div>';
   const depthOk = st.depth >= spot.depth;
-  h += modCard('【'+spot.name+'】','🌊',
+  const stars = Math.min(5, SPOTS.indexOf(spot)+1);
+  h += modCard('【'+spot.name+'】'+' <span class="t-legend" style="letter-spacing:1px">'+'★'.repeat(stars)+'</span>','🌊',
     '<div class="mc-row"><span>推荐深度</span><b class="'+(depthOk?'t-good':'t-bad')+'">'+spot.depth+'（当前 '+st.depth+'）</b></div>'+
     '<div class="mc-row"><span>巨物</span><b class="t-legend">'+esc(spot.bigFish)+'</b></div>'+
     '<div class="mc-row"><span>基础出货率</span><b>×'+spot.rate.toFixed(2)+'</b></div>'+
@@ -3537,6 +3657,35 @@ function viewPond(){
     '<div class="mc-desc">'+esc(spot.desc)+'</div>'+
     (depthOk?'<div class="mc-ok">✓ 深度达标，稀有鱼概率全额生效</div>'
             :'<div class="mc-bad">⚠ 垂钓深度不足，稀有鱼概率被压制，建议升级「鱼线」</div>'));
+
+  /* ---- 模块 1.5：今日捕获榜 / 钓友 / 图鉴（对齐新版界面稿） ---- */
+  const tfLb = (S.today && S.today.date === todayStr() && S.today.fish) ? S.today.fish : {};
+  const todayTot = Object.keys(tfLb).reduce((s,k)=>s+(tfLb[k]||0),0);
+  const medals = ['🥇','🥈','🥉'];
+  const lbList = [{name:(S.name||'无名钓手')+'（我）', n:todayTot, me:true}];
+  while(lbList.length<3) lbList.push({name:'虚位以待', n:0, empty:true});
+  h += '<div class="sec-title" style="margin-top:12px">今日捕获榜</div><div class="capRow">';
+  lbList.forEach((p,i)=>{
+    h += '<div class="capCard'+(p.me?' me':'')+(p.empty?' empty':'')+'">'+
+      '<div class="capMedal">'+(p.empty?'🎣':medals[i])+'</div>'+
+      '<div class="capName">'+esc(p.name)+'</div>'+
+      '<div class="capVal">'+(p.empty?'—':p.n+' 条')+'</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div class="sec-title" style="margin-top:12px">钓友</div>'+
+    '<div class="friendRow"><div class="fAva">🎣</div><div class="fInfo">'+
+    '<div class="fN">'+esc(S.name||'无名钓手')+'（我）</div>'+
+    '<div class="fS on">● 在线 · 正在 '+esc(spot.name)+' 垂钓</div></div>'+
+    '<span class="pill p-good">我</span></div>'+
+    '<div class="hint">暂无其他钓友在线 · 邀上同事一起挂机摸鱼</div>';
+
+  const dg = S.stats.rareGain || {};
+  const dFound = RORDER.filter(r=>(dg[r]||0)>0).length;
+  h += '<div class="sec-title" style="margin-top:12px">图鉴</div>'+
+    '<div class="dexRow"><span class="dexPct">收集度: <b>'+Math.round(dFound/RORDER.length*100)+'%</b></span>'+
+    '<span class="dexIcos">'+RORDER.map(r=>'<span class="p-'+RARITY[r].cls+'" title="'+RARITY[r].name+'鱼种">'+((dg[r]||0)>0?'🐟':'❓')+'</span>').join('')+'</span>'+
+    '<button class="btn sm" onclick="switchTab(\'info\')">查看全部(D)</button></div>';
 
   /* ---- 模块 2：鱼获统计 ---- */
   const tf = (S.today && S.today.date === todayStr() && S.today.fish) ? S.today.fish : {};
@@ -7196,6 +7345,20 @@ function bindShell(){
   document.addEventListener('visibilitychange', ()=>{
     if(document.hidden){ if(S) flushSave(); }
     else if(S){ save(); }
+  });
+  /* 全局快捷键：B 背包 / S 商店 / P 祈愿 / R 榜单 / D 图鉴 / N 打窝 */
+  document.addEventListener('keydown', ev=>{
+    if(!S) return;
+    const tg = ev.target;
+    if(tg && (tg.tagName==='INPUT' || tg.tagName==='TEXTAREA' || tg.isContentEditable)) return;
+    if(document.getElementById('mask').classList.contains('on')) return;
+    const k = ev.key.toLowerCase();
+    if(k==='b') switchTab('inv');
+    else if(k==='s') switchTab('shop');
+    else if(k==='p') switchTab('wish');
+    else if(k==='r') switchTab('rank');
+    else if(k==='d') switchTab('info');
+    else if(k==='n') openNest();
   });
   document.getElementById('scrim').onclick = closeDrawers;
   document.getElementById('mask').onclick = (e)=>{ if(e.target.id==='mask') closeModal(); };
