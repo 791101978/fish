@@ -5653,20 +5653,12 @@ function pxDrawImgRod(ang, pull, thick){
     pxRect(xx, yy + w, w, 1, '#160d07');            // 下缘深色描边（关键：防与底图混色）
     if(i % 30 === 0 && i>0) pxPix(xx, yy-1, '#e8c98c');
   }
-  // 握把 + 卷线器（参考图有明确的轮座与线轮）
-  pxRect(handX-5, handY-4, 12, 9, '#241708');
-  pxRect(handX-3, handY+5, 9, 8, '#39464e');
-  pxRect(handX-2, handY+6, 7, 5, '#93a0a8');
-  pxPix(handX+2, handY+9, '#dfeaf2');
-  // ---- 握竿的手（压在竿根之上，把竿和人物连起来）----
-  // 肤色取自底图钓手手部实测色；袖口用救生衣的橙红
-  pxRect(handX-4, handY-3, 9, 7, '#3a2a1c');            // 手轮廓
-  pxRect(handX-3, handY-2, 7, 5, '#d9a878');            // 手掌
-  pxRect(handX+3, handY-1, 2, 3, '#d9a878');            // 握指（包住竿）
-  pxRect(handX+3, handY-1, 2, 1, '#b8875c');            // 指缝
-  pxRect(handX-4, handY+2, 3, 3, '#c49064');            // 手下缘阴影
-  pxRect(handX-8, handY-1, 4, 6, '#4a6850');            // 袖口（人物素材的绿夹克）
-  pxRect(handX-8, handY-1, 4, 2, '#5d7d60');            // 袖口受光
+  // 竿柄握把（收小成一小段柄：原来 12×9 的大方块 + 手掌 + 袖口 + 线轮
+  // 一起叠在人物胸前，像凭空多出几个方块；人物素材本身已有手/臂）
+  pxRect(handX-2, handY-1, 6, 4, '#2f2216');
+  /* 说明：人物素材本身自带手臂/手，这里不再叠加绘制「握竿的手 + 袖口 + 卷线器」。
+     原先那三块（手掌 #d9a878、袖口 #4a6850、线轮 #39464e/#93a0a8）在人物胸前
+     叠成几块方格，与底图人物完全对不上，观感像「凭空多个方块」。 */
   PX._handX = handX; PX._handY = handY;
   /* 可见竿梢 = 直线端点 + 末端弯垂量（含向鱼侧的水平弯曲）。鱼线必须锚在弯垂后的梢端，
      否则线会悬空在竿梢上方十几像素（线竿不匹配） */
@@ -6469,11 +6461,9 @@ function pxDrawSceneImg(){
       if(Math.hypot(g.x - fx, g.y - fy) < 2.5) continue;
       pxDrawImgFish(g.x, g.y, col, g.a, 0, {big:spec.big, look:reelLook, len:spec.len, alpha:gAlpha[i]});
     }
-    // 线：竿梢 → 钩眼（绷紧）
-    const rEye = pxImgHookEye(cur.mx, cur.my, cur.a);
-    pxDrawImgLine(rod.ex, rod.ey, rEye.x, rEye.y, 1, big?2:1);
+    // 线：竿梢 → 鱼嘴（绷紧）。鱼已上钩起水 → 不画鱼钩，避免钩叠在鱼嘴上
+    pxDrawImgLine(rod.ex, rod.ey, cur.mx, cur.my, 1, big?2:1);
     pxDrawImgFish(fx, fy, col, cur.a, 0, {big:spec.big, look:reelLook, len:spec.len});
-    pxDrawImgHook(cur.mx, cur.my, cur.a);
     // 出水阶段水花（前 30% 还贴水时）
     if(Math.min(1, T/dur) < 0.3){
       if(pxGate('reelSplash', T, 3)) pxEmitSplash(cur.mx, sy + 2, big?14:7);
@@ -6582,16 +6572,13 @@ function pxDrawSceneImg(){
         pxRect(Math.round(wx), Math.round(wy), 2, 4 + (i%4)*4, '#eaf6ff');
       }
       PX.ctx.globalAlpha = 1;
-      /* 线与钩：巨物出水全程也始终连着鱼嘴——原来整段展示线+钩全部消失，
-         鱼像凭空浮在水上。钩柄沿线方向（嘴→竿梢），鱼溶解时钩先撤掉。 */
+      /* 线：巨物出水全程始终连着鱼嘴（否则鱼像凭空浮在水上）。
+         鱼已钓获 → 不画钩（原来钩叠在鱼嘴上）。 */
       const maB = ang * Math.PI / 180;
       const mxB = fx - Math.cos(maB)*spec.nose*0.95;          // 嘴位（与鱼体同源）
       const myB = (fy - vUp) - Math.sin(maB)*spec.nose*0.95;
-      const hookA = 90 + Math.atan2(rod.ex - mxB, -(rod.ey - myB)) * 180/Math.PI;
-      const bigEye = pxImgHookEye(mxB, myB, hookA);
-      pxDrawImgLine(rod.ex, rod.ey, bigEye.x, bigEye.y, 1, 2);
+      pxDrawImgLine(rod.ex, rod.ey, mxB, myB, 1, 2);
       pxDrawImgFish(fx, fy - vUp, col, ang, vScale, {big:true, pearl: vT < 8, look, len: spec.len, alpha: vAlpha});
-      if(vanish < 0.85) pxDrawImgHook(mxB, myB, hookA);
       // 大量飞溅（衔接期先不出水花，等鱼到水面再炸开）
       if(e0 > 0.35 && T < HOLD+4 && pxGate('bigSplash', T, 2)) pxEmitSplash(cx - 60 + Math.random()*120, sy + 2, 20);
       pxDrawImgRings(cx, sy + 8, 150, 4, (0.36*vAlpha + 0.06)*e0, 1.7);
@@ -6614,11 +6601,9 @@ function pxDrawSceneImg(){
       const mx2 = fx2 - Math.cos(ma)*spec.nose*0.95;       // 嘴位 = 线端
       const my2 = fy2 - Math.sin(ma)*spec.nose*0.95;
       fx = fx2; fy = fy2;
-      // 线 → 钩眼（钩弯=鱼嘴，与收线终点严格同源）
-      const nEye = pxImgHookEye(mx2, my2 - vUp*0.6, hangA);
-      pxDrawImgLine(rod.ex, rod.ey, nEye.x, nEye.y, 1, 1);
+      // 线 → 鱼嘴（已钓获不画钩，避免钩叠在鱼嘴上；与收线终点严格同源）
+      pxDrawImgLine(rod.ex, rod.ey, mx2, my2 - vUp*0.6, 1, 1);
       pxDrawImgFish(fx2, fy2 - vUp, col, hangA, vScale, {look, len: spec.len, alpha: vAlpha});
-      if(vanish < 0.85) pxDrawImgHook(mx2, my2 - vUp*0.6, hangA);
       pxDrawImgRings(mx2, sy + 4, 100, 3, 0.24*vAlpha + 0.05, 1.0);
     }
     /* 溶解特效：鱼身周围光点上浮 + 中心一瞬间的亮闪 */
@@ -7039,11 +7024,19 @@ function pxDrawScene(){
   }
 }
 
-/** 动作播完回到待机：若有全域事件则优先呈现 */
+/** 动作播完回到待机：若有全域事件则优先呈现。
+ *  若已有排队中的抛竿 → 直接接上抛竿：否则会先闪一帧 waiting（浮漂凭空出现）
+ *  再立刻重新抛钩，观感是「浮漂闪一下又重抛」。 */
 function pxToIdle(){
   const now = Date.now();
   if((ENV.frenzyUntil||0) > now || PX.nestUntil > now){ pxSetScene('nest'); return; }
   if((ENV.tideUntil||0) > now || PX.tideUntil > now){ pxSetScene('tide'); return; }
+  if(PX.pendingCast){
+    PX.pendingCast = 0;
+    if(PX.castTimer){ clearTimeout(PX.castTimer); PX.castTimer = null; }
+    pxSetScene('cast');
+    return;
+  }
   pxSetScene('waiting');
 }
 
@@ -7076,18 +7069,25 @@ function pxEventCast(){
   pxSetScene('cast');
 }
 
-/** 上钩 → 咬钩（按品级分档）；若抛竿/前一段动画还在播，等它收尾再咬钩 */
+/** 上钩 → 咬钩（按品级分档）；若抛竿/前一段动画还在播，等它收尾再咬钩。
+ *  抛竿入水后额外给浮漂一段「静置」时间：否则浮漂刚落水（甚至只闪 1 帧）
+ *  就立刻咬钩，看起来像「浮漂瞬间出现在水面 → 又瞬间重新抛钩」。 */
+const PX_BITE_WAIT_MS = 1800;
 function pxEventBite(rarity, fishName){
   if(!PX.on) return;
   const o = RARITY[rarity].order;
   const size = o<=1 ? 'small' : (o<=3 ? 'mid' : 'big');
+  const F = 1000/(PX.fps||24);
   let rest = pxSceneRemainMs();
+  let viaCast = (PX.scene.state === 'cast');
   if(PX.pendingCast){                                    // 有排队中的抛竿 → 等它入水
-    rest = Math.max(rest, (PX.pendingCast - Date.now()) + PX_CAST_FRAMES*(1000/(PX.fps||24)));
+    rest = Math.max(rest, (PX.pendingCast - Date.now()) + PX_CAST_FRAMES*F);
+    viaCast = true;
   }
   if(rest > 0){
+    const extra = viaCast ? PX_BITE_WAIT_MS : 0;         // 抛竿后先让浮漂在水面静置
     if(PX.biteTimer) clearTimeout(PX.biteTimer);
-    PX.biteTimer = setTimeout(()=>{ PX.biteTimer = null; pxEventBite(rarity, fishName); }, rest + 50);
+    PX.biteTimer = setTimeout(()=>{ PX.biteTimer = null; pxEventBite(rarity, fishName); }, rest + extra + 50);
     return;
   }
   pxSetScene('bite', {rarity, size, name: fishName});
