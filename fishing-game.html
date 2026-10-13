@@ -72,9 +72,11 @@ header{
 
 .main{flex:1;display:flex;min-height:0;overflow:hidden}
 .col{display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.col-left{width:330px;border-right:1px solid var(--line);background:rgba(10,21,32,.5)}
-.col-mid{flex:1;min-width:0}
-.col-right{width:380px;border-left:1px solid var(--line);background:rgba(10,21,32,.5)}
+/* 宽屏下左右栏弹性加宽吃掉富余空间（大屏不再是中栏两侧大片留白），
+   窄屏时按 min-width 收缩；画面宽度由 pxFitHero 限幅（1100），富余优先给侧栏 */
+.col-left{flex:1 1 340px;min-width:330px;max-width:640px;border-right:1px solid var(--line);background:rgba(10,21,32,.5)}
+.col-mid{flex:2 1 860px;min-width:340px}
+.col-right{flex:1 1 400px;min-width:380px;max-width:680px;border-left:1px solid var(--line);background:rgba(10,21,32,.5)}
 @media(max-width:1080px){
   .col-left,.col-right{position:fixed;top:0;bottom:0;z-index:60;width:300px;background:var(--bg2);
     transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow)}
@@ -84,10 +86,8 @@ header{
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .28s}
   .scrim.on{opacity:1;pointer-events:auto}
   header{padding:6px 8px}
-  .tb-mid{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-  .tb-mid::-webkit-scrollbar{display:none}
+  /* .tb-mid / .lvChip 的窄窗规则移至下方「顶栏 v2」基础规则之后（同优先级后者覆盖，放这里会被顶掉） */
   .resChip,.basketChip{flex-shrink:0}
-  .lvChip{min-width:120px}
   #toasts{top:auto!important;bottom:96px}
 }
 @media(min-width:1081px){.scrim{display:none}.only-mobile{display:none!important}}
@@ -747,8 +747,9 @@ header{gap:8px}
 }
 .resChip b{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700}
 .resChip .ico{font-size:13px}
-.tb-mid{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px 0}
-.tb-mid::-webkit-scrollbar{display:none}
+/* 顶栏自适应：中段芯片空间不足时换行排列（不再横向滚动藏信息），
+   配合下方两档紧凑样式，任何窗口宽度下等级/资源/按钮全部可见 */
+.tb-mid{display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;padding:2px 0}
 .basketChip{
   display:flex;align-items:center;gap:7px;white-space:nowrap;
   background:rgba(23,49,72,.55);border:1px solid #2b4a63;
@@ -766,6 +767,30 @@ header{gap:8px}
 .kbd{
   font-size:9px;font-weight:800;line-height:1;padding:1px 4px;margin-left:2px;
   border:1px solid #2b4a63;border-bottom-width:2px;border-radius:3px;color:#7fa3bd;background:rgba(6,16,26,.5)
+}
+/* 顶栏紧凑档：窗口越窄，芯片越小，保证所有信息都摆得下（只换行、不裁切） */
+@media(max-width:1560px){
+  header{gap:6px;padding:7px 10px}
+  .resChip,.basketChip{padding:3px 7px;font-size:11.5px;gap:4px}
+  .lvChip{min-width:126px;padding:2px 8px 4px}
+  .lvChip .lvTop{font-size:11px}
+  .tb-right{gap:4px}
+  .tb-right .btn{padding:5px 9px;font-size:11.5px}
+}
+@media(max-width:1280px){
+  header{padding:5px 8px;gap:5px}
+  .resChip,.basketChip{padding:2px 6px;font-size:11px;gap:3px}
+  .resChip .ico,.basketChip .bi{font-size:11.5px}
+  .lvChip{min-width:108px;padding:2px 7px 3px}
+  .lvChip .lvTop b{font-size:11px}
+  .tb-right .btn{padding:4px 7px;font-size:11px}
+  .logo{font-size:13px}
+}
+/* ≤1080px（窄窗/抽屉模式）：顶栏中段整行换行排列——所有资源芯片都可见，不再横向滚动藏信息；
+   注意必须放在上方 .tb-mid/.lvChip 基础规则之后，否则同优先级会被覆盖 */
+@media(max-width:1080px){
+  .tb-mid{order:3;flex:0 0 100%;flex-wrap:wrap;row-gap:4px;padding-bottom:2px}
+  .lvChip{min-width:120px}
 }
 
 /* ---------- 装备 3×2 大格子（角色与装备） ---------- */
@@ -4499,6 +4524,8 @@ function pxFitHero(){
   if(availW <= 0 || availH <= 0) return;
   /* 全屏时限高：画面最高只占视口 62%（宽屏变电影画幅），给日志和侧栏留空间 */
   const h = Math.min(availH, Math.round(window.innerHeight * 0.62));
+  /* 画幅上限 1100：更宽会从 720 源图里裁掉过多竖向内容（船/水线跑出取景），
+     富余空间交给左右侧栏吸收（见 .col-left/.col-right 弹性宽度） */
   const w = Math.min(availW, 1100);
   win.style.width  = w + 'px';
   win.style.height = h + 'px';
@@ -5499,10 +5526,10 @@ function pxDrawImgRod(ang, pull, thick){
   const bx = handX - Math.cos(a)*6, by = handY - Math.sin(a)*6;
   for(let i=0;i<=steps;i++){
     const k = i/steps;
-    const bend = sag * Math.pow(k, 1.55);
-    /* 受力弯曲：竿梢同时向「鱼所在的一侧」（左/下）弯 —— 只有向下的垂度
-       看不出竿在较劲，叠加水平分量才是真实的受拉弯曲 */
-    const xx = Math.round(bx + (ex-bx)*k - bend*0.45);
+    /* 指数 1.7：弯曲集中在梢部，竿身中段保持挺直 → 受拉时是真实的「弓」而非整体歪斜；
+       水平分量 0.6：竿梢同时向鱼的一侧（左/下）兜过去，形成参考图的 C 形弧 */
+    const bend = sag * Math.pow(k, 1.7);
+    const xx = Math.round(bx + (ex-bx)*k - bend*0.6);
     const yy = Math.round(by + (ey-by)*k + bend);
     // 根部深褐 → 竿梢浅木色；整体比底图暗一档以保证对比
     // 竿体：根部中褐 → 梢端近黑（参考图竿通体深色；梢端必须压得住亮色天空带，否则竿梢"隐形"、鱼线像悬空）
@@ -5529,8 +5556,8 @@ function pxDrawImgRod(ang, pull, thick){
   PX._handX = handX; PX._handY = handY;
   /* 可见竿梢 = 直线端点 + 末端弯垂量（含向鱼侧的水平弯曲）。鱼线必须锚在弯垂后的梢端，
      否则线会悬空在竿梢上方十几像素（线竿不匹配） */
-  PX._rodEx = ex - sag*0.45; PX._rodEy = ey + sag;
-  return {ex: ex - sag*0.45, ey: ey + sag};
+  PX._rodEx = ex - sag*0.6; PX._rodEy = ey + sag;
+  return {ex: ex - sag*0.6, ey: ey + sag};
 }
 
 /** 钓线（图像模式）：二次贝塞尔，可给中段垂度，1~2px 浅色 */
@@ -6074,15 +6101,19 @@ function pxDrawSceneImg(){
     pull = s.fishSize==='big' ? (46 + Math.sin(s.t*0.9)*8)
          : s.fishSize==='mid' ? (24 + Math.min(12,s.t*0.7)) : 12;
   } else if(s.state==='reel'){
-    /* 收线：线越短拉力越大 → 弯曲逐渐回弹 */
+    /* 收线：鱼在拼命挣扎，竿必须全程保持明显的受拉弯弓（参考图的 C 形弓），
+       越接近收完拉力越小、竿才缓缓回直；叠加低频挣扎让弓深有呼吸感 */
     const big = s.fishSize==='big', dur = big ? 56 : 34, k = Math.min(1, s.t/dur);
-    ang = 213 - k*12; pull = big ? (1-k)*42+8 : (1-k)*22+6;
+    const fight = 1 - k;                                  // 剩余拉力比例
+    ang = 213 - k*12;
+    pull = big ? fight*52 + 16 : fight*30 + 10;
+    pull += Math.sin(s.t*0.55) * 5 * fight;               // 挣扎起伏
   } else if(s.state==='caught'){
-    /* 与收线结束姿势（ang 201 / pull big?8:6）无缝衔接：缓动过渡 → 竿不会「跳」一下 */
+    /* 与收线结束姿势（ang 201 / pull big?16:10）无缝衔接：缓动过渡 → 竿不会「跳」一下 */
     const big0 = s.fishSize==='big';
     const e2 = Math.min(1, s.t/18), se = e2*e2*(3-2*e2);
     ang  = 201 + ((big0 ? 200 : 208) - 201)*se;
-    pull = (big0 ? 8 : 6) + ((big0 ? 34 : 18) - (big0 ? 8 : 6))*se;
+    pull = (big0 ? 16 : 10) + ((big0 ? 34 : 18) - (big0 ? 16 : 10))*se;
   }
   else if(s.state==='lost'){
     ang = s.result==='break' ? 198 : 204;
