@@ -4952,6 +4952,20 @@ function pxBoatPose(){
  *  参考图：深褐木船，舷侧木纹清晰，内舱掏空，钓手坐中偏后，船头有小狗。 */
 /** 船体统一包装（图片精灵版）：应用浮沉 / 倾斜 / 漂移，贴上船只精灵图，
  *  钓手坐船中、金毛在船头（随船一起摇摆），并输出持竿手世界锚点。 */
+/* 各场船位微调：底图构图不同，开阔水面位置有差异（船心 x / 水面线 y）。
+   船直接浮在底图自己的水面上 —— 无吃水色罩、无泡沫、无假倒影。 */
+const BG_BOAT_ANCHOR = {
+  stream:    {x:481, surf:352},
+  canyon:    {x:481, surf:352},
+  greatriver:{x:481, surf:352},
+  thousand:  {x:481, surf:352},
+  marsh:     {x:481, surf:352},
+  estuary:   {x:481, surf:352},
+  nearsea:   {x:481, surf:352},
+  farisland: {x:481, surf:352},
+  glacier:   {x:481, surf:352},
+  meteorlake:{x:481, surf:352},
+};
 function pxDrawBoat(){
   const c = PX.ctx;
   const pose = pxBoatPose();
@@ -4961,18 +4975,20 @@ function pxDrawBoat(){
   const geo = BOAT_GEO[bid] || BOAT_GEO.canoe;
   const img = boatSpriteEl(bid);
   if(!img) return pose;                   // 精灵未解码：本帧跳过（data URL 毫秒级完成）
+  const sk = pxSkin();
+  const anc = BG_BOAT_ANCHOR[sk.id] || {x:PX.L.boatX, surf:PX.L.surfY};
   const W = geo.w, H = Math.round(W * img.naturalHeight / img.naturalWidth);
   const sub = geo.keel * H;               // 吃水深度（船底没入水面的高度）
-  /* ---- 船体水中倒影（先画，位于船之下方） ---- */
-  pxDrawBoatReflect(W, pose, f);
+  /* ---- 船底自然水影（先画，位于船之下方：柔和暗影 + 细微涟漪，非色罩） ---- */
+  pxDrawBoatReflect(W, pose, f, anc.surf);
   const rad = pose.tilt * Math.PI / 180;
-  const cx = PX.L.boatX + pose.drift, cy = PX.L.boatY + pose.bob;
-  const topY = (PX.L.surfY + sub - H) - PX.L.boatY;   // 精灵顶边（相对船心）
+  const cx = anc.x + pose.drift, cy = PX.L.boatY + pose.bob;
+  const topY = (anc.surf + sub - H) - PX.L.boatY;   // 精灵顶边（相对船心）
   c.save();
   c.globalAlpha = f;
   c.translate(cx, cy);
   c.rotate(rad);
-  /* 船体（水面线 = PX.L.surfY，船底压入水下 sub 像素） */
+  /* 船体（水面线 = anc.surf，船底压入水下 sub 像素） */
   c.drawImage(img, Math.round(-W/2), Math.round(topY), W, H);
   /* 钓手：坐船中（朝左持竿方向） */
   const P = BOAT_PERSON_EL, ph = BOAT_PERSON.h, pw = Math.round(ph * P.naturalWidth / P.naturalHeight);
@@ -4984,21 +5000,6 @@ function pxDrawBoat(){
   const dx0 = Math.round(-W/2 + geo.dog[0]*W - dw/2);
   const dy0 = Math.round(topY + geo.dog[1]*H - dh + Math.sin(PX.frame*0.31)*0.8);
   c.drawImage(D, dx0, dy0, dw, dh);
-  /* 吃水罩：水线以下统一压一层水色（船底半浸感） */
-  const surfL = PX.L.surfY - PX.L.boatY;
-  const soakH = Math.max(0, topY + H - surfL);
-  if(soakH > 0){
-    c.globalAlpha = f * 0.40;
-    c.fillStyle = '#12304a';
-    c.fillRect(Math.round(-W/2), surfL, W, soakH);
-  }
-  c.restore();
-  /* 水线泡沫（世界坐标，贴船舷两侧的小段高光） */
-  const wob = Math.sin(PX.frame*0.2) * 2;
-  c.save();
-  c.globalAlpha = f * 0.55;
-  pxRect(Math.round(cx - W/2) - 5 + wob, PX.L.surfY + 1, 8, 1, 'rgba(226,242,250,0.85)');
-  pxRect(Math.round(cx + W/2) - 3 - wob, PX.L.surfY + 1, 8, 1, 'rgba(226,242,250,0.85)');
   c.restore();
   /* 持竿手世界锚点：人在前手位置（随船姿态旋转，供 pxDrawRod 直接使用） */
   const hx = px0 + pw*0.18, hy = py0 + ph*0.55;
@@ -5009,19 +5010,39 @@ function pxDrawBoat(){
   PX._boatW = W;
   return pose;
 }
-/** 船体水中倒影：竖直压暗的水影 + 逐行横向抖动（按船只实际宽度） */
-function pxDrawBoatReflect(W, pose, f){
-  const c = PX.ctx, sk = pxSkin();
-  const bx = PX.L.boatX + pose.drift;
-  const by = PX.L.surfY + 2;
-  const h = Math.max(8, Math.round(W * 0.10));
+/** 船底自然水影： hull 下方一团柔和暗影（模拟船体挡光）+ 舷侧两段极淡涟漪弧，
+ *  不再用色罩 / 泡沫条 / 抖动倒影 —— 船是「浮」在场景真实水面上的。 */
+function pxDrawBoatReflect(W, pose, f, surfY){
+  const c = PX.ctx;
+  const bx = (BG_BOAT_ANCHOR[pxSkin().id] || {x:PX.L.boatX}).x + pose.drift;
+  const by = surfY + 2;
+  const bobK = Math.max(0, Math.min(1, (pose.bob + 3) / 6));   // 船下沉 → 影子略宽略深
+  /* 柔和暗影：三层由宽到窄、由深到淡的横带拼成椭圆羽化边缘 */
+  const layers = [
+    {hw:0.52, a:0.10, dy:1},
+    {hw:0.42, a:0.12, dy:3},
+    {hw:0.26, a:0.08, dy:5},
+  ];
   c.save();
-  for(let i=0;i<h;i++){
-    const k = i/h;
-    const wob = Math.sin(PX.frame*0.13 + i*0.5) * (2.2 + k*3.4);
-    const ww = Math.round(W*0.9 * (1 - k*0.35));
-    c.globalAlpha = f * 0.28 * (1 - k*0.75);
-    pxRect(bx - ww/2 + wob, by + i, ww, 1, pxMix(sk.waterMid, '#050c12', 0.42));
+  layers.forEach(L=>{
+    const ww = Math.round(W * (L.hw + bobK*0.05) * 2);
+    c.globalAlpha = f * L.a;
+    pxRect(Math.round(bx - ww/2), by + L.dy, ww, 2, '#04101c');
+  });
+  c.restore();
+  /* 舷侧涟漪：两段很淡的弧形点阵，缓慢呼吸（模拟船体排开的细浪） */
+  const breathe = Math.sin(PX.frame*0.09) * 2.2;
+  c.save();
+  for(let s=-1;s<=1;s+=2){
+    for(let g=0; g<9; g++){
+      const ang = (s>0 ? 0.08 : Math.PI-0.08) + s * 0 ;   // 半边弧
+      const rr = W*0.52 + g*3.4 + breathe;
+      const a0 = Math.PI*0.06 + g*0.02;
+      const x = bx + s * Math.cos(a0 + g*0.028) * rr * 0.62;
+      const y = by + Math.sin(a0 + g*0.028) * rr * 0.16 + 2;
+      c.globalAlpha = f * Math.max(0, 0.13 - g*0.013);
+      pxPix(Math.round(x), Math.round(y), '#dceefc');
+    }
   }
   c.restore();
 }
@@ -5344,22 +5365,9 @@ function pxDrawBgImage(sk){
   c.drawImage(PX.bgImg, dx, dy, dw, dh);
   c.restore();
 
-  // 渔场气色罩：先整体色调，再由深到浅压暗水下
+  // 渔场气色罩：整幅轻色调（不遮盖底图自己的水面 —— 船/人/狗直接浮在场景真实水面上）
   c.globalAlpha = 1;
   c.fillStyle = sel.col; c.fillRect(0, 0, PX.W, PX.H);
-  /* 水线混合层：参考图的水面只作氛围，交互区（浮漂/鱼/涟漪/水花）统一成
-     程序化水色 → 任何构图的底图都能保证可读性，且不损失水面以上的风景 */
-  const sy = PX.L.surfY;
-  const wg = c.createLinearGradient(0, sy - 52, 0, sy + 68);
-  wg.addColorStop(0, 'rgba(0,0,0,0)');
-  wg.addColorStop(0.45, pxA(sk.waterTop, 0.40));
-  wg.addColorStop(1, pxA(sk.waterMid, 0.86));
-  c.fillStyle = wg; c.fillRect(0, sy - 52, PX.W, PX.H - sy + 52);
-  // 深水压暗（保留原色罩的暗部）
-  const grad = c.createLinearGradient(0, sy + 10, 0, PX.H);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, sel.dark);
-  c.fillStyle = grad; c.fillRect(0, sy + 10, PX.W, PX.H - sy - 10);
 
   // 区域暗角
   const vg = c.createRadialGradient(PX.W*0.5, PX.H*0.52, PX.H*0.34,
@@ -5369,67 +5377,30 @@ function pxDrawBgImage(sk){
   c.fillStyle = vg; c.fillRect(0, 0, PX.W, PX.H);
 }
 
-/** 水面波光：底图水面上的持续动态波纹（横移高光 + 竖向呼吸）
- *  实现要点：高光带横跨整幅水面（而不是被随机取模截成小段），
- *  流速正负交替 + 竖向呼吸 → 任何时刻都有大面积水面在变，肉眼必然可见。 */
+/** 水面波光：底图水面自身的自然细节（不再叠加横移光带/碎波纹等程序化水纹，
+ *  只保留 船体周围扩散的涟漪 与 远景粼粼光点 —— 水面以底图原貌为主） */
 function pxDrawWaterGlimmer(sk){
   const c = PX.ctx;
   const y0 = PX.L.surfY - 3, y1 = PX.H;
-  const span = y1 - y0;
   if(PX.bg) return;
-  const gcol = sk.sun ? pxMix(sk.sun.col, '#ffffff', 0.62) : '#f2fbff';
-  /* 1) 五条主波光带：横跨全宽，每条以不同速度/方向流动，并整体上下呼吸 */
-  for(let r=0; r<SHIMMER.rows.length; r++){
-    const breath = Math.sin(PX.frame * SHIMMER.breathSpd + r*1.7) * SHIMMER.breathAmp;
-    const baseY = y0 + span * (SHIMMER.rows[r] / 6.5);
-    const y = Math.round(baseY + breath);
-    const spd = SHIMMER.speed[r];
-    const a = SHIMMER.alpha[r];
-    /* 沿宽度铺一串长短不一的高光段（用连续推进的偏移制造整体横移） */
-    let x = -60 + ((PX.frame * spd * 1.6) % 120);
-    const dashPattern = [42, 18, 66, 26, 34, 54, 22, 48, 30, 40];
-    let pi = 0;
-    while(x < PX.W + 60){
-      const w = dashPattern[pi % dashPattern.length];
-      const px0 = Math.round(x), pw = Math.round(w);
-      if(px0 + pw > 0 && px0 < PX.W){
-        c.globalAlpha = a;
-        pxRect(px0, y, pw, 2, gcol);
-        c.globalAlpha = a * 0.55;
-        pxRect(px0 + 3, y - 1, Math.max(2, pw - 6), 1, gcol);      // 上缘细亮线（波峰）
-        c.globalAlpha = 1;
-      }
-      x += w + 26;
-      pi++;
-    }
-  }
-  /* 2) 反向细碎波纹（更密、更细，制造水面交织质感） */
-  for(let i=0;i<30;i++){
-    const y = y0 + 3 + ((i * 1.87) % (span - 3));
-    const w = 16 + ((i*37) % 40);
-    const x = ((PX.W + 80 - i*53 - PX.frame*0.85) % (PX.W + w)) - w;
-    c.globalAlpha = 0.11 + (i%3)*0.035;
-    pxRect(Math.round(x), Math.round(y), w, 1, '#d8ebf8');
-    c.globalAlpha = 1;
-  }
-  /* 3) 船体周围扩散的涟漪（随船起伏呼吸） */
-  const bx = 452, by = PX.L.surfY + 6 + PX.bgBob*0.5;
+  /* 1) 船体周围扩散的涟漪（对齐真实船位，随起伏呼吸） */
+  const bx = (BG_BOAT_ANCHOR[sk.id] || {x:PX.L.boatX}).x, by = PX.L.surfY + 6 + PX.bgBob*0.5;
   for(let i=0;i<4;i++){
     const rr = 24 + i*14 + Math.sin(PX.frame*0.075 + i*1.2)*5.5;
-    c.globalAlpha = 0.22 - i*0.038;
+    c.globalAlpha = 0.20 - i*0.035;
     for(let g=0; g<26; g++){
       const ang = Math.PI*0.03 + g/26 * Math.PI*0.94;
       pxPix(Math.round(bx + Math.cos(ang)*rr*1.95), Math.round(by + Math.sin(ang)*rr*0.34), '#e2f2fd');
     }
     c.globalAlpha = 1;
   }
-  /* 4) 远景水面粼粼光点（闪烁） */
+  /* 2) 远景水面粼粼光点（闪烁） */
   for(let i=0;i<34;i++){
     const ph = (PX.frame * 0.07 + i * 0.37) % 1;
     if(ph > 0.45) continue;
     const x = (i * 79 + 13) % PX.W;
     const y = y0 + 2 + (i % 6) * 3;
-    c.globalAlpha = 0.50 * (1 - ph/0.45);
+    c.globalAlpha = 0.42 * (1 - ph/0.45);
     pxPix(x, y, '#ffffff');
     c.globalAlpha = 1;
   }
