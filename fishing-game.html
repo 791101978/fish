@@ -73,10 +73,11 @@ header{
 .main{flex:1;display:flex;min-height:0;overflow:hidden}
 .col{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 /* 宽屏下左右栏弹性加宽吃掉富余空间（大屏不再是中栏两侧大片留白），
-   窄屏时按 min-width 收缩；画面宽度由 pxFitHero 限幅（1100），富余优先给侧栏 */
-.col-left{flex:1 1 340px;min-width:330px;max-width:640px;border-right:1px solid var(--line);background:rgba(10,21,32,.5)}
-.col-mid{flex:2 1 860px;min-width:340px}
-.col-right{flex:1 1 400px;min-width:380px;max-width:680px;border-left:1px solid var(--line);background:rgba(10,21,32,.5)}
+   窄屏时按 min-width 收缩；中栏封顶 1140（画面上限 1100 + 内边距），
+   超出部分全部转给侧栏（侧栏上限放宽到 760/800） */
+.col-left{flex:1 1 340px;min-width:330px;max-width:760px;border-right:1px solid var(--line);background:rgba(10,21,32,.5)}
+.col-mid{flex:2 1 860px;min-width:340px;max-width:1140px}
+.col-right{flex:1 1 400px;min-width:380px;max-width:800px;border-left:1px solid var(--line);background:rgba(10,21,32,.5)}
 @media(max-width:1080px){
   .col-left,.col-right{position:fixed;top:0;bottom:0;z-index:60;width:300px;background:var(--bg2);
     transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow)}
@@ -216,7 +217,9 @@ header{
 .logPanel .logHead{flex:none;padding:5px 10px;font-size:10.5px;font-weight:800;letter-spacing:1.2px;
   color:#8fb8d4;background:rgba(23,49,72,.55);border-bottom:2px solid #1d3a50;
   text-shadow:0 0 6px rgba(90,170,220,.2)}
-.logBox{flex:0 0 auto;height:min(34vh,420px);overflow-y:auto;
+/* 高度随内容自适应（max-height 封顶）：日志少时面板不撑出大片空白，
+   多了才长高到上限并开始滚动回看 */
+.logBox{flex:0 0 auto;height:auto;max-height:min(34vh,420px);overflow-y:auto;
   padding:7px 10px;
   font-size:12.5px;display:flex;flex-direction:column;gap:3px;justify-content:flex-end}
 .logLine{animation:slideIn .35s ease-out;line-height:1.5;word-break:break-word}
@@ -4207,7 +4210,7 @@ PX.bgBob = 0; PX.bgTilt = 0;
   PX.boatScale = 1.35;      // img 模式船体尺寸
   PX.L.surfY = 352;         // 底图取景映射水线（底图对位用；交互水线走 pxBoatSurf()）
   PX.L.bobX = 190;          // 浮漂落点（船左前方开阔水面）
-  PX.ROD_LEN = 216;         // 竿长（缩短：不再超长横跨半个画面）
+  PX.ROD_LEN = 172;         // 竿长（再缩短：参考图竿约到船头前方一小段，不横跨半屏）
   /* 底图实体区域（用于覆盖绘制） */
   PX.IMG_DOG = { x: 419, y: 196, w: 54, h: 50 };   // 底图狗：会动的活狗覆盖它
 PX.ROD_SAG = 10;          // 竿自重弯垂
@@ -5098,8 +5101,9 @@ function pxDrawBoat(){
   c.restore();
   c.restore();
   /* 持竿手世界锚点：人在船尾、手在身前下方（朝左），随船姿态旋转，供 pxDrawRod 直接使用。
-     锚点取前手（身体左缘）→ 竿从手里伸出，不再横穿身体 */
-  const hx = px0 + pw*0.14, hy = py0 + ph*0.58;
+     锚点取胸前双手位置：素材左侧有透明边距，0.14 会落在甲板悬空 →
+     0.30（横向进入身体前胸）+ 0.50（高度提到胸口），竿根真正握在手里 */
+  const hx = px0 + pw*0.30, hy = py0 + ph*0.50;
   PX._boatHand = {
     x: cx + hx*Math.cos(rad) - hy*Math.sin(rad),
     y: cy + hx*Math.sin(rad) + hy*Math.cos(rad),
@@ -5526,10 +5530,10 @@ function pxDrawImgRod(ang, pull, thick){
   const bx = handX - Math.cos(a)*6, by = handY - Math.sin(a)*6;
   for(let i=0;i<=steps;i++){
     const k = i/steps;
-    /* 指数 1.7：弯曲集中在梢部，竿身中段保持挺直 → 受拉时是真实的「弓」而非整体歪斜；
-       水平分量 0.6：竿梢同时向鱼的一侧（左/下）兜过去，形成参考图的 C 形弧 */
-    const bend = sag * Math.pow(k, 1.7);
-    const xx = Math.round(bx + (ex-bx)*k - bend*0.6);
+    /* 指数 1.8：弯曲集中在梢部，竿身中段保持挺直 → 受拉时是真实的「弓」而非整体歪斜；
+       水平分量 0.72：竿梢同时向鱼的一侧（左/下）兜过去，形成参考图的 C 形弧 */
+    const bend = sag * Math.pow(k, 1.8);
+    const xx = Math.round(bx + (ex-bx)*k - bend*0.72);
     const yy = Math.round(by + (ey-by)*k + bend);
     // 根部深褐 → 竿梢浅木色；整体比底图暗一档以保证对比
     // 竿体：根部中褐 → 梢端近黑（参考图竿通体深色；梢端必须压得住亮色天空带，否则竿梢"隐形"、鱼线像悬空）
@@ -5556,8 +5560,8 @@ function pxDrawImgRod(ang, pull, thick){
   PX._handX = handX; PX._handY = handY;
   /* 可见竿梢 = 直线端点 + 末端弯垂量（含向鱼侧的水平弯曲）。鱼线必须锚在弯垂后的梢端，
      否则线会悬空在竿梢上方十几像素（线竿不匹配） */
-  PX._rodEx = ex - sag*0.6; PX._rodEy = ey + sag;
-  return {ex: ex - sag*0.6, ey: ey + sag};
+  PX._rodEx = ex - sag*0.72; PX._rodEy = ey + sag;
+  return {ex: ex - sag*0.72, ey: ey + sag};
 }
 
 /** 钓线（图像模式）：二次贝塞尔，可给中段垂度，1~2px 浅色 */
@@ -6098,22 +6102,22 @@ function pxDrawSceneImg(){
   } else if(s.state==='bite'){
     ang = s.fishSize==='big' ? 194 : (s.fishSize==='mid' ? 202 : 207);
     /* 受力弯曲大幅增强：咬钩时鱼在拉扯，竿必须明显弯弓 */
-    pull = s.fishSize==='big' ? (46 + Math.sin(s.t*0.9)*8)
-         : s.fishSize==='mid' ? (24 + Math.min(12,s.t*0.7)) : 12;
+    pull = s.fishSize==='big' ? (56 + Math.sin(s.t*0.9)*9)
+         : s.fishSize==='mid' ? (30 + Math.min(14,s.t*0.8)) : 14;
   } else if(s.state==='reel'){
     /* 收线：鱼在拼命挣扎，竿必须全程保持明显的受拉弯弓（参考图的 C 形弓），
        越接近收完拉力越小、竿才缓缓回直；叠加低频挣扎让弓深有呼吸感 */
     const big = s.fishSize==='big', dur = big ? 56 : 34, k = Math.min(1, s.t/dur);
     const fight = 1 - k;                                  // 剩余拉力比例
     ang = 213 - k*12;
-    pull = big ? fight*52 + 16 : fight*30 + 10;
+    pull = big ? fight*62 + 18 : fight*36 + 12;
     pull += Math.sin(s.t*0.55) * 5 * fight;               // 挣扎起伏
   } else if(s.state==='caught'){
-    /* 与收线结束姿势（ang 201 / pull big?16:10）无缝衔接：缓动过渡 → 竿不会「跳」一下 */
+    /* 与收线结束姿势（ang 201 / pull big?18:12）无缝衔接：缓动过渡 → 竿不会「跳」一下 */
     const big0 = s.fishSize==='big';
     const e2 = Math.min(1, s.t/18), se = e2*e2*(3-2*e2);
     ang  = 201 + ((big0 ? 200 : 208) - 201)*se;
-    pull = (big0 ? 16 : 10) + ((big0 ? 34 : 18) - (big0 ? 16 : 10))*se;
+    pull = (big0 ? 18 : 12) + ((big0 ? 40 : 22) - (big0 ? 18 : 12))*se;
   }
   else if(s.state==='lost'){
     ang = s.result==='break' ? 198 : 204;
@@ -6168,11 +6172,16 @@ function pxDrawSceneImg(){
         PX.ctx.globalAlpha = 1;
       }
       pxDrawImgLine(rod.ex, rod.ey, px0, py0, 0, 1);
-      // 饵（亮黄小球）+ 真鱼钩：钩眼挂在球下、钩尖朝下，随飞行轻摆
-      // （原来是 2×4 灰条——看不出是钩，入水后钩还整根消失）
-      pxRect(Math.round(px0)-3, Math.round(py0)-3, 7, 7, '#f2c53a');
-      pxRect(Math.round(px0)-2, Math.round(py0)-2, 4, 4, '#ffe89a');
-      pxDrawImgHook(px0, py0 + 7, 90 + Math.sin(T*0.55)*6);
+      if(k < 1){
+        // 飞行中：饵（亮黄小球）+ 真鱼钩，钩眼挂在球下、钩尖朝下，随飞行轻摆
+        pxRect(Math.round(px0)-3, Math.round(py0)-3, 7, 7, '#f2c53a');
+        pxRect(Math.round(px0)-2, Math.round(py0)-2, 4, 4, '#ffe89a');
+        pxDrawImgHook(px0, py0 + 7, 90 + Math.sin(T*0.55)*6);
+      } else {
+        // 入水后：浮漂就位（黄饵球收掉，直接换成待机同款浮漂+钩，衔接不跳变）
+        pxDrawImgHook(bobX, sy - 1, 90);
+        pxDrawImgBobber(bobX, sy - 8);
+      }
       // 落水
       if(k >= 1){
         const rr = (T-38)*2.8;
