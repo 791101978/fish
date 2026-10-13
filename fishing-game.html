@@ -216,7 +216,7 @@ header{
 .logPanel .logHead{flex:none;padding:5px 10px;font-size:10.5px;font-weight:800;letter-spacing:1.2px;
   color:#8fb8d4;background:rgba(23,49,72,.55);border-bottom:2px solid #1d3a50;
   text-shadow:0 0 6px rgba(90,170,220,.2)}
-.logBox{flex:0 0 auto;max-height:172px;overflow-y:auto;
+.logBox{flex:0 0 auto;max-height:286px;overflow-y:auto;
   padding:7px 10px;
   font-size:12.5px;display:flex;flex-direction:column;gap:3px;justify-content:flex-end}
 .logLine{animation:slideIn .35s ease-out;line-height:1.5;word-break:break-word}
@@ -873,11 +873,13 @@ header{gap:8px}
     <div class="tb-left" id="tbLeft"></div>
     <div class="tb-mid" id="tbMid"></div>
     <div class="tb-right">
-      <button class="btn sm tb-btn" onclick="switchTab('inv')" title="背包">🎒 背包<b class="kbd">B</b></button>
-      <button class="btn sm tb-btn" onclick="switchTab('shop')" title="商店">🏪 商店<b class="kbd">S</b></button>
-      <button class="btn sm tb-btn" onclick="switchTab('wish')" title="祈愿">🙏 祈愿<b class="kbd">P</b></button>
-      <button class="btn sm tb-btn" onclick="switchTab('rank')" title="榜单">🏆 榜单<b class="kbd">R</b></button>
-      <button class="btn sm" id="btnNest" title="打窝(N)">🪣 打窝</button>
+      <button class="btn sm tb-btn" onclick="switchTab('inv')" title="背包">🎒 背包</button>
+      <button class="btn sm tb-btn" onclick="switchTab('shop')" title="商店">🏪 商店</button>
+      <button class="btn sm tb-btn" onclick="switchTab('wish')" title="祈愿">🙏 祈愿</button>
+      <button class="btn sm tb-btn" onclick="switchTab('bag')" title="鱼篓">🧺 鱼篓</button>
+      <button class="btn sm tb-btn" onclick="switchTab('bait')" title="窝料">🌽 窝料</button>
+      <button class="btn sm tb-btn" onclick="switchTab('rank')" title="榜单">🏆 榜单</button>
+      <button class="btn sm" id="btnNest" title="打窝">🪣 打窝</button>
       <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
       <button class="btn sm" id="btnAccount" title="账号">👤</button>
       <button class="btn sm" id="btnMute" title="播报开关">🔊</button>
@@ -1874,7 +1876,7 @@ function pushLog(html, cls){
   renderLog();
 }
 let logDirty=false, logRaf=0;
-const LOG_SHOW = 6;   // 画面上最多保留 6 行，避免刷屏影响观感
+const LOG_SHOW = 10;  // 画面上最多保留 10 行，垂钓过程看得更完整
 function renderLog(){
   const box = document.getElementById('logBox'); if(!box) return;
   const frag = document.createDocumentFragment();
@@ -2949,7 +2951,7 @@ function renderActionBar(){
 }
 function renderTabHeads(){
   const tl = document.getElementById('tabsL');
-  const L = [['equip','⚙️ 装备'],['inv','🎒 背包'],['wish','🌊 祈愿'],['bag','🧺 鱼篓'],['shop','🏪 商店'],['bait','🪣 窝料']];
+  const L = [['equip','🎽 角色与装备']];
   tl.innerHTML = L.map(([k,n])=>'<div class="tab '+(tabL===k?'on':'')+'" onclick="switchTab(\''+k+'\')">'+n+'</div>').join('');
   const tr = document.getElementById('tabsR');
   const R = [['pond','🌊 渔场'],['rank','🏆 榜单'],['dock','🛶 船坞'],['info','📖 图鉴']];
@@ -4387,7 +4389,13 @@ function pxStart(){
   if(!PX.on || PX.raf) return;
   PX.cv = document.getElementById('pixelCv');
   if(!PX.cv) return;
-  PX.ctx = PX.cv.getContext('2d');
+  /* 场景一律画在 720×720 离屏画布，再按窗口实际尺寸「cover」铺到可见画布
+     → 画面随窗口自适应铺满中栏，且场景构图/锚点完全不受窗口大小影响 */
+  if(!PX.off){
+    PX.off = document.createElement('canvas');
+    PX.off.width = PX.W; PX.off.height = PX.H;
+  }
+  PX.ctx = PX.off.getContext('2d');
   PX.ctx.imageSmoothingEnabled = false;
   if(!PX.skin) pxApplySpot(S ? S.spot : SPOT_ORDER[0]);
   /* 渲染节拍：dt 全额交给动画时间轴，余数保留 → 帧间隔恒定，不再出现
@@ -4436,21 +4444,41 @@ function pxOnVisibility(){
   else { PX.bg = false; PX.fps = 24; PX.maxFps = 60; }
   PX._prevTs = 0; PX._rAcc = 0; PX._obsIv = 0;   // 复位节拍器：切回前台不会攒出巨大 dt
 }
-/** 按动画视窗容器的可用空间等比确定窗口尺寸（宽幅 720/320 永不变形）。
-    规则：优先铺满宽度；若由此得到的高度超出容器，则改为按高度等比缩小。
-    绝不对单轴单独夹取，因此比例恒定。 */
+/** 把 720×720 离屏场景铺到可见画布（cover：铺满 + 等比裁边）。
+    取景重心偏水面（y≈332）：保证地平线、船、浮漂、跳跃弧线都在框内；
+    竖屏等高窗口时水平方向以船心 x=370 为重心。 */
+function pxBlit(){
+  const cv = PX.cv; if(!cv || !PX.off) return;
+  const cw = cv.width, ch = cv.height;
+  if(cw <= 0 || ch <= 0) return;
+  const vctx = cv.getContext('2d');
+  vctx.imageSmoothingEnabled = false;
+  const scale = Math.max(cw / PX.W, ch / PX.H);
+  const vw = cw / scale, vh = ch / scale;          // 可见窗口（场景坐标）
+  let sx = PX.L.boatX - vw / 2;                    // 水平重心：船
+  sx = Math.max(0, Math.min(PX.W - vw, sx));
+  let sy = 332 - vh / 2;                           // 垂直重心：偏水面
+  sy = Math.max(0, Math.min(PX.H - vh, sy));
+  vctx.drawImage(PX.off, sx, sy, vw, vh, 0, 0, cw, ch);
+}
+
+/** 动画视窗铺满中栏可用空间（窗口自适应）：
+    pixelWin 占满 hero 容器，可见画布位图尺寸随容器实际大小设定，
+    场景由 pxBlit() 以 cover 方式铺放 → 任意窗口比例都不留黑边、不变形。 */
 function pxFitHero(){
   const hero = document.getElementById('animHero');
   const win = document.getElementById('pixelWin');
-  if(!hero || !win) return;
-  const R = PX.W / PX.H;                       // 2.25
+  const cv = document.getElementById('pixelCv');
+  if(!hero || !win || !cv) return;
   const availW = hero.clientWidth  - 4;        // 减去 border
   const availH = hero.clientHeight - 4;
   if(availW <= 0 || availH <= 0) return;
-  let w = availW, h = w / R;
-  if(h > availH){ h = availH; w = h * R; }     // 高度不够 → 等比缩小
-  win.style.width  = Math.floor(w) + 'px';
-  win.style.height = Math.floor(h) + 'px';
+  win.style.width  = availW + 'px';
+  win.style.height = availH + 'px';
+  if(cv.width !== availW || cv.height !== availH){
+    cv.width = availW; cv.height = availH;
+  }
+  pxBlit();                                    // 尺寸变化后立即重铺（动画关闭时也能刷新）
 }
 /** 切换渔场皮肤（不做淡出，直接替换；供淡入淡出内部调用） */
 function pxApplySpot(id){
@@ -5315,6 +5343,7 @@ function pxDraw(dt){
   pxPopupDraw();
 
   pxSyncWindowCls();
+  pxBlit();                       // 离屏场景 → 可见画布（窗口自适应铺放）
 }
 
 /* =========================================================================
