@@ -614,6 +614,11 @@ header{
 .modal-h h3{margin:0;font-size:15px}
 .modal-b{padding:13px 15px}
 .modal-f{padding:11px 15px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.modal.wide{max-width:560px}
+.modal-subtabs{display:flex;gap:6px;margin-bottom:12px;background:rgba(10,25,40,.55);padding:4px;border-radius:10px;border:1px solid var(--line)}
+.modal-subtabs .mst{flex:1;text-align:center;padding:7px 4px;border-radius:7px;font-size:13px;color:var(--txt3);cursor:pointer;transition:.15s}
+.modal-subtabs .mst:hover{color:var(--txt)}
+.modal-subtabs .mst.on{background:linear-gradient(135deg,#1d4a6e,#173a58);color:var(--txt);font-weight:600;box-shadow:inset 0 0 0 1px rgba(120,190,255,.25)}
 .close{font-size:19px;color:var(--txt3);line-height:1;padding:2px 6px;border-radius:6px}
 .close:hover{background:rgba(255,255,255,.08);color:var(--txt)}
 
@@ -873,11 +878,10 @@ header{gap:8px}
     <div class="tb-left" id="tbLeft"></div>
     <div class="tb-mid" id="tbMid"></div>
     <div class="tb-right">
+      <button class="btn sm tb-btn" onclick="openWishModal('equip')" title="祈愿（装备 + 航船）">🙏 祈愿</button>
+      <button class="btn sm tb-btn" onclick="openShopModal()" title="商店">🏪 商店</button>
       <button class="btn sm tb-btn" onclick="switchTab('inv')" title="背包">🎒 背包</button>
-      <button class="btn sm tb-btn" onclick="switchTab('shop')" title="商店">🏪 商店</button>
-      <button class="btn sm tb-btn" onclick="switchTab('wish')" title="祈愿">🙏 祈愿</button>
       <button class="btn sm tb-btn" onclick="switchTab('bag')" title="鱼篓">🧺 鱼篓</button>
-      <button class="btn sm tb-btn" onclick="switchTab('bait')" title="窝料">🌽 窝料</button>
       <button class="btn sm tb-btn" onclick="switchTab('rank')" title="榜单">🏆 榜单</button>
       <button class="btn sm" id="btnNest" title="打窝">🪣 打窝</button>
       <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
@@ -2738,7 +2742,7 @@ function finishWish(){
   if(bl) body += '<div class="riskNote" style="margin-top:6px">🌀 期间触发涡流反噬 '+bl+' 次，保底计数未清空。</div>';
   openModal(WISH_CFG[mode].ico+' '+WISH_CFG[mode].name+' 结算（'+total+' 次）',
     '<div class="deepSea" style="padding:11px 12px">'+body+'</div>',
-    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();switchTab(\'inv\')">查看背包</button>');
+    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();openWishModal(\'equip\')">🙏 继续祈愿</button><button class="btn gold" onclick="closeModal();switchTab(\'inv\')">查看背包</button>');
   renderAll(); save();
 }
 /** 垂钓直落：巨物 / 传说鱼低概率直接掉落装备（无反噬风险） */
@@ -2774,6 +2778,7 @@ function buyShop(id){
   else if(id==='repair_s'){ S.res.repair = (S.res.repair||0)+3; toast('获得 3 维修材料','good'); }
   else if(id==='repair_l'){ S.res.repair = (S.res.repair||0)+18; toast('获得 18 维修材料','good'); }
   renderAll(); save();
+  if(modalKind === 'shop') openShopModal();   // 弹窗内购买：刷新金币与库存状态
 }
 
 /* ---------------- 互助 ---------------- */
@@ -2961,10 +2966,7 @@ function renderPaneL(){
   const el = document.getElementById('paneL');
   if(tabL==='equip') el.innerHTML = viewEquip();
   else if(tabL==='inv') el.innerHTML = viewInv();
-  else if(tabL==='wish') el.innerHTML = viewWish();
-  else if(tabL==='bag') el.innerHTML = viewBag();
-  else if(tabL==='shop') el.innerHTML = viewShop();
-  else el.innerHTML = viewBait();
+  else el.innerHTML = viewBag();
 }
 function renderPaneR(){
   const el = document.getElementById('paneR');
@@ -2974,7 +2976,7 @@ function renderPaneR(){
   else el.innerHTML = viewInfo();
 }
 function switchTab(k){
-  if(['equip','inv','wish','bag','shop','bait'].includes(k)) tabL=k; else tabR=k;
+  if(['equip','inv','bag'].includes(k)) tabL=k; else tabR=k;
   renderTabHeads(); renderPaneL(); renderPaneR();
   closeDrawers();
 }
@@ -3305,7 +3307,8 @@ function toggleWishSlot(id){
   viewWishRefresh();
 }
 function viewWishRefresh(){
-  if(tabL === 'wish') document.getElementById('paneL').innerHTML = viewWish();
+  if(modalKind === 'wish' && wishModalTab === 'equip') openWishModalRender();
+  if(tabL === 'wish') document.getElementById('paneL').innerHTML = viewWish();   // 兼容旧入口
 }
 function viewWish(){
   let h = '<div class="sec"><div class="sec-title">祈愿资源（全部来自钓鱼产出，无付费抽卡）</div>';
@@ -3458,9 +3461,9 @@ function startBoatWish(pid){
     openModal('🌊 暗流偏移',
       '<div class="card"><div class="row"><b class="t-epic">本次航召被暗流带偏，没有发现新船。</b></div>'+
       '<div class="tiny" style="margin-top:6px">返还一半消耗材料：'+costText(back)+'（保底计数已累计，不会白抽）。</div></div>',
-      '<button class="btn primary" onclick="closeModal()">知道了</button>');
+      '<button class="btn primary" onclick="closeModal();openWishModal(\'boat\')">知道了 · 再来一次</button>');
     pushLog('🌊 <b class="t-epic">暗流偏移</b>：航召一无所获，返还 '+costText(back), 'log-bad');
-    save(); renderResBar(); if(tabR==='dock') renderPaneR();
+    save(); renderResBar(); if(tabR==='dock') renderPaneR(); if(modalKind==='wish') openWishModalRender();
     return;
   }
   const id = boatRollTarget(pid);
@@ -3489,7 +3492,7 @@ function chooseBoat(bid){
     '<div class="bstats" style="justify-content:center">'+Object.keys(b.stats).map(k=>boatWordHtml(k, b.stats[k])).join('')+'</div>'+
     (dup ? '<div class="tiny" style="margin-top:6px">（重复获得：船坞已有同款，两艘合一）</div>' : '')+
     '</div>',
-    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();switchTab(\'dock\')">🛶 查看船坞</button>');
+    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn primary" onclick="closeModal();openWishModal(\'boat\')">🙏 继续祈愿</button><button class="btn gold" onclick="closeModal();switchTab(\'dock\')">🛶 查看船坞</button>');
   pushLog(dup ? '🛶 航船抽到重复的 <b class="t-'+EQ_RARITY[b.rarity].cls+'">'+b.name+'</b>，另一艘沉入深海'
               : '🛶 航船祈愿收入 <b class="t-'+EQ_RARITY[b.rarity].cls+'">'+b.name+'</b>！已存入船坞', 'log-big');
   BW = null; save(); renderResBar(); if(tabR==='dock') renderPaneR();
@@ -3511,6 +3514,7 @@ function setActiveBoat(id){
   });
   pushLog('🛶 已上阵 <b class="t-'+EQ_RARITY[BOATS[id].rarity].cls+'">'+BOATS[id].name+'</b>'+(parts.length?' · '+parts.join(' · '):''), 'log-tip');
   save(); renderAll();
+  if(modalKind === 'wish' && wishModalTab === 'boat') openWishModalRender();   // 弹窗内上阵：实时刷新
 }
 /* ---- 船骸碎片 / 深海核心 / 打捞宝箱 ---- */
 function boatResDrop(topR, bigForced){
@@ -3899,13 +3903,31 @@ function viewInfo(){
 }
 
 /* ---------------- 弹窗 ---------------- */
-function openModal(title, body, footer){
+let modalKind = null;   // 'wish' | 'shop' | null —— 用于抽卡结算后自动刷新弹窗内容
+function openModal(title, body, footer, kind){
+  modalKind = kind || null;
   const m = document.getElementById('modal');
+  m.classList.toggle('wide', kind === 'wish' || kind === 'shop');
   m.innerHTML = `<div class="modal-h"><h3>${title}</h3><button class="close" onclick="closeModal()">✕</button></div>
     <div class="modal-b">${body}</div>${footer?`<div class="modal-f">${footer}</div>`:''}`;
   document.getElementById('mask').classList.add('on');
 }
-function closeModal(){ document.getElementById('mask').classList.remove('on'); }
+function closeModal(){ document.getElementById('mask').classList.remove('on'); modalKind = null; }
+/* 祈愿弹窗：整合装备祈愿 + 航船祈愿（船坞）两套卡池 */
+let wishModalTab = 'equip';
+function openWishModal(tab){
+  if(tab) wishModalTab = tab;
+  openWishModalRender();
+}
+function openWishModalRender(){
+  const sub = '<div class="modal-subtabs">'+
+    '<div class="mst'+(wishModalTab==='equip'?' on':'')+'" onclick="openWishModal(\'equip\')">⚙️ 装备祈愿</div>'+
+    '<div class="mst'+(wishModalTab==='boat'?' on':'')+'" onclick="openWishModal(\'boat\')">🛶 航船祈愿</div></div>';
+  openModal('🙏 祈愿 · '+(wishModalTab==='equip'?'装备':'航船'), sub + (wishModalTab==='equip' ? viewWish() : viewDock()), null, 'wish');
+}
+function openShopModal(){
+  openModal('🏪 商店', viewShop(), null, 'shop');
+}
 function openNest(){
   const nst = nestState();
   let body = '';
@@ -7128,7 +7150,6 @@ function startUI(){
     pxCheckEnv(); pxSyncWindowCls();
     // 轻量刷新当前面板（窝点倒计时需要）
     if(tabR==='pond') renderPaneR();
-    if(tabL==='bait') renderPaneL();
     renderAnimHud();
     // 窝点过期提示
     const n = S.nest;
@@ -7385,8 +7406,8 @@ function bindShell(){
     if(document.getElementById('mask').classList.contains('on')) return;
     const k = ev.key.toLowerCase();
     if(k==='b') switchTab('inv');
-    else if(k==='s') switchTab('shop');
-    else if(k==='p') switchTab('wish');
+    else if(k==='s') openShopModal();
+    else if(k==='p') openWishModal();
     else if(k==='r') switchTab('rank');
     else if(k==='d') switchTab('info');
     else if(k==='n') openNest();
