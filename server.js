@@ -291,11 +291,14 @@ async function handleApi(req, res, urlPath) {
     if (!username || !password) return json(res, 400, { error: '请输入用户名和密码' });
 
     const uid = nameIndex[username.toLowerCase()];
-    if (!uid || !users[uid]) return json(res, 401, { error: '用户名或密码错误' });
+    if (!uid || !users[uid]) {
+      console.log('[login-nouser]', username);
+      return json(res, 401, { error: '该用户名尚未注册，请先切换到「注册」开一个新账号', code: 'NO_USER' });
+    }
     const u = users[uid];
     if (!verifyPassword(password, u.salt, u.hash)) {
       console.log('[login-fail]', username);
-      return json(res, 401, { error: '用户名或密码错误' });
+      return json(res, 401, { error: '密码不正确（注意大小写和首尾空格），可切换到「注册」页用同样信息重注册', code: 'BAD_PASS' });
     }
 
     let cid2 = cookies.cid;

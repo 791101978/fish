@@ -5,7 +5,7 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport">
 <meta content="#0b1a2a" name="theme-color">
 <link href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎣</text></svg>" rel="icon">
-<title>放松垂钓 · 文字挂机钓鱼</title>
+<title>放松垂钓</title>
 <style>
 :root{
   --bg:#0a1520; --bg2:#0e1f2e; --panel:#12293c; --panel2:#173148;
@@ -378,6 +378,10 @@ header{
   border-radius:9px;padding:7px 11px;margin-bottom:11px;display:none
 }
 .authErr.on{display:block;animation:slideIn .25s}
+.authHint{font-size:12px;color:var(--txt2);line-height:1.65;margin:-4px 0 11px;display:none}
+.authHint.on{display:block}
+.authHint b{color:var(--gold)}
+.authHint a{color:#6fc3ff;cursor:pointer;text-decoration:underline}
 .authNote{font-size:11px;color:var(--txt3);text-align:center;margin-top:13px;line-height:1.6}
 .authDivider{display:flex;align-items:center;gap:9px;margin:15px 0 11px;color:var(--txt3);font-size:11px}
 .authDivider::before,.authDivider::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -409,65 +413,66 @@ header{
 </head>
 <body>
 
-<!--pnid:v9S6dE1OJdukLcNrVNltBw--><!-- ============ 登录 / 注册 ============ -->
+<!-- ============ 登录 / 注册 ============ -->
 <div id="authScreen">
   <div class="authBox">
     <div class="authBrand">
-      <div class="bt"><span class="dot"></span><!--pnid:4FCVBmpJnwfUHri7plvvDv-->放松垂钓</div>
-      <div class="bs"><!--pnid:9PLWcOH8I98NXxID38fXIQ-->全自动挂机 · 打窝策略 · 装备养成</div>
+      <div class="bt"><span class="dot"></span>放松垂钓</div>
+      <div class="bs">全自动挂机 · 打窝策略 · 装备养成</div>
     </div>
 
     <div class="authCard">
       <div class="warnBar" id="offlineWarn"></div>
       <div class="authTabs">
-        <div class="authTab on" id="tabLogin" onclick="switchAuth('login')"><!--pnid:OI9Y6te43NfeeCYLslK8lH-->登录</div>
-        <div class="authTab" id="tabReg" onclick="switchAuth('reg')"><!--pnid:GydL3PtS0Qk9QeCniafS8Q-->注册</div>
+        <div class="authTab on" id="tabLogin" onclick="switchAuth('login')">登录</div>
+        <div class="authTab" id="tabReg" onclick="switchAuth('reg')">注册</div>
       </div>
       <div class="authErr" id="authErr"></div>
+      <div class="authHint" id="authHint"></div>
       <div class="field">
-        <label><!--pnid:AAahORTPgtRy4BDqCmkqly-->用户名</label>
+        <label>用户名</label>
         <input autocomplete="username" id="authUser" maxlength="12" placeholder="2-12 位，中文/字母/数字/下划线">
       </div>
       <div class="field">
-        <label><!--pnid:IvlRST2GgdigSXuGJsHiHs-->密码</label>
+        <label>密码</label>
         <input autocomplete="current-password" id="authPass" maxlength="64" placeholder="至少 6 位" type="password">
       </div>
       <div class="field" id="pass2Wrap" style="display:none">
-        <label><!--pnid:Nh5kyjoPlT505g8adt16Xk-->确认密码</label>
+        <label>确认密码</label>
         <input autocomplete="new-password" id="authPass2" maxlength="64" placeholder="再次输入密码" type="password">
       </div>
-      <button class="authBtn" id="authSubmit" onclick="submitAuth()"><!--pnid:R6rkvHlyAxXAUw4Y1Lsvxn-->登 录</button>
-      <button class="retryBtn" id="authRetry" onclick="forceRetry()"><!--pnid:yOOj44uQQQwcx8yzrz58Cn-->🔄 重试连接</button>
+      <button class="authBtn" id="authSubmit" onclick="submitAuth()">登 录</button>
+      <button class="retryBtn" id="authRetry" onclick="forceRetry()">🔄 重试连接</button>
       <div id="localAccts"></div>
-      <div class="authNote"><!--pnid:jjhGPpe8Bpejq2L1Esobrj-->进度保存在服务端，换设备登录同一账号即可继续摸鱼</div>
+      <div class="authNote">进度保存在服务端，换设备登录同一账号即可继续摸鱼</div>
     </div>
 
-    <div class="authFoot"><!--pnid:MGroPTJlDH1steAq6PxeiA-->零操作挂机 · 关掉页面也会持续钓鱼 · 上线一键收菜</div>
+    <div class="authFoot">零操作挂机 · 关掉页面也会持续钓鱼 · 上线一键收菜</div>
   </div>
 </div>
 
-<!--pnid:4dVdvaoz3gVimxa1Yvw632--><!-- ============ 游戏主体 ============ -->
+<!-- ============ 游戏主体 ============ -->
 <div id="gameRoot">
 <div id="app">
   <header>
-    <div class="logo"><span class="dot"></span><!--pnid:mALv4lz8AotWK4rgvNJyo6-->放松垂钓</div>
+    <div class="logo"><span class="dot"></span>放松垂钓</div>
     <div class="res" id="resBar"></div>
-    <button class="btn sm only-mobile" id="btnMenuL"><!--pnid:P8327aC6PLHxZvDXqREpu3-->☰ 面板</button>
-    <button class="btn sm only-mobile" id="btnMenuR"><!--pnid:2CRJSwTdzf0xzYYBrDox4M-->社交</button>
-    <button class="btn sm" id="btnNest" title="打窝"><!--pnid:Hqm7x6gDEdmC7E5vzCgJ7S-->🪣 打窝</button>
-    <button class="btn sm" id="btnPixel" title="像素动画开关"><!--pnid:xBCAHGYbJUjUYwdGZlfqsR-->🎞️</button>
-    <button class="btn sm" id="btnAccount" title="账号"><!--pnid:ZPrDkbLkczrb7vNAKLYVRD-->👤</button>
-    <button class="btn sm" id="btnMute" title="播报开关"><!--pnid:89bFyFBshGJIUfziUAPZJt-->🔊</button>
+    <button class="btn sm only-mobile" id="btnMenuL">☰ 面板</button>
+    <button class="btn sm only-mobile" id="btnMenuR">社交</button>
+    <button class="btn sm" id="btnNest" title="打窝">🪣 打窝</button>
+    <button class="btn sm" id="btnPixel" title="像素动画开关">🎞️</button>
+    <button class="btn sm" id="btnAccount" title="账号">👤</button>
+    <button class="btn sm" id="btnMute" title="播报开关">🔊</button>
   </header>
 
   <div class="main">
-    <!--pnid:oLf4RcylTI1S2d4MZIL2Km--><!-- 左侧 -->
+    <!-- 左侧 -->
     <aside class="col col-left" id="colL">
       <div class="tabs" id="tabsL"></div>
       <div class="scroll" id="paneL"></div>
     </aside>
 
-    <!--pnid:1Afv8NFZ7vgEIDtHmS8KcQ--><!-- 中间渔场 -->
+    <!-- 中间渔场 -->
     <section class="col col-mid">
       <div class="scene">
         <div class="skyglow"></div>
@@ -476,10 +481,10 @@ header{
           <div class="animHero" id="animHero">
             <div class="pixelWin" id="pixelWin">
               <canvas height="320" id="pixelCv" width="720"></canvas>
-              <button class="animToggle on" id="btnPixelHero" title="动画开关（关闭仅渲染静态场景）"><!--pnid:ngYTTxdKw03Aa0goXlZhnd-->🎞️</button>
-              <div class="basketWarn" id="basketWarn"><!--pnid:bYtum8cNb1Z0jJy5Nt6f3h-->🧺 满仓</div>
-              <div class="animHud" id="animHud"><!--pnid:BTGbaIo7C8ucQ5dCmksWSh-->自动垂钓中…</div>
-              <div class="pixelOff" id="pixelOff"><!--pnid:XUmHPcSZD5DVu1fWn8b5fY-->动画已关闭<span><!--pnid:VUrEZ0FLagmDl05iSaen8A-->仅渲染静态场景图 · 适合摸鱼</span></div>
+              <button class="animToggle on" id="btnPixelHero" title="动画开关（关闭仅渲染静态场景）">🎞️</button>
+              <div class="basketWarn" id="basketWarn">🧺 满仓</div>
+              <div class="animHud" id="animHud">自动垂钓中…</div>
+              <div class="pixelOff" id="pixelOff">动画已关闭<span>仅渲染静态场景图 · 适合摸鱼</span></div>
             </div>
           </div>
           <div class="logBox" id="logBox"></div>
@@ -488,14 +493,14 @@ header{
       </div>
     </section>
 
-    <!--pnid:c4j1z9pxSTnrd4uXAVC42I--><!-- 右侧 -->
+    <!-- 右侧 -->
     <aside class="col col-right" id="colR">
       <div class="tabs" id="tabsR"></div>
       <div class="scroll" id="paneR"></div>
     </aside>
   </div>
 </div>
-</div><!--pnid:2x5mjEhIWKXzeBSuFGUIfH--><!-- /#gameRoot -->
+</div><!-- /#gameRoot -->
 
 <div class="scrim" id="scrim"></div>
 <div class="mask" id="mask"><div class="modal" id="modal"></div></div>
@@ -504,7 +509,7 @@ header{
 <script>
 "use strict";
 /* =========================================================================
-   放松垂钓 · 零依赖文字挂机钓鱼
+   放松垂钓 · 零依赖挂机钓鱼
    ========================================================================= */
 
 /* ---------------- 品级配置 ---------------- */
@@ -6089,6 +6094,7 @@ function switchAuth(mode){
   document.getElementById('pass2Wrap').style.display = mode==='reg' ? 'block' : 'none';
   document.getElementById('authSubmit').textContent = mode==='reg' ? '注 册 并 开 始' : '登 录';
   document.getElementById('authErr').classList.remove('on');
+  const _ah=document.getElementById('authHint'); if(_ah){_ah.classList.remove('on');_ah.innerHTML='';}
   document.getElementById('authUser').setAttribute('autocomplete', mode==='reg'?'username':'username');
   document.getElementById('authPass').setAttribute('autocomplete', mode==='reg'?'new-password':'current-password');
 }
@@ -6096,11 +6102,25 @@ function authErr(msg){
   const el = document.getElementById('authErr');
   el.textContent = msg; el.classList.add('on');
 }
+/** 登录失败补充说明：区分「账号不存在」和「密码不对」，并给出一键切换 */
+function authHint(code){
+  const el = document.getElementById('authHint');
+  if(!code){ el.classList.remove('on'); el.innerHTML=''; return; }
+  let html = '';
+  if(code === 'NO_USER'){
+    html = '服务端没有这个用户名。<a onclick="switchAuth(\'reg\')">点此切换到「注册」</a>，用同样的用户名密码注册即可开新档（进度存在服务端，不会丢）。';
+  }else if(code === 'BAD_PASS'){
+    html = '用户名存在，但密码对不上。注意<b>大小写</b>、<b>首尾空格</b>，以及是不是浏览器自动填充了旧密码。';
+  }
+  el.innerHTML = html;
+  el.classList.toggle('on', !!html);
+}
 async function submitAuth(){
   const btn = document.getElementById('authSubmit');
   const username = (document.getElementById('authUser').value||'').trim();
   const password = document.getElementById('authPass').value || '';
   document.getElementById('authErr').classList.remove('on');
+  const _ah=document.getElementById('authHint'); if(_ah){_ah.classList.remove('on');_ah.innerHTML='';}
 
   if(!username) return authErr('请输入用户名');
   if(!password) return authErr('请输入密码');
@@ -6123,6 +6143,7 @@ async function submitAuth(){
       authErr('无法连接服务器，请稍后重试，或点击下方「重试连接」');
     }else{
       authErr(e.message || '操作失败');
+      authHint(e.data && e.data.code);
     }
   }finally{
     btn.disabled = false;
@@ -6151,6 +6172,7 @@ function quickLogin(username){
   document.getElementById('authPass').value = '';
   document.getElementById('authPass').focus();
   document.getElementById('authErr').classList.remove('on');
+  const _ah=document.getElementById('authHint'); if(_ah){_ah.classList.remove('on');_ah.innerHTML='';}
 }
 
 /** 登录成功后：装载存档 → 进入游戏 */
